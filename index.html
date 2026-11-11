@@ -72,7 +72,7 @@
   .bottom-panel .val { font-size: 18px; font-weight: 700; color: var(--primary); line-height: 1.1; }
   .btn-limpiar { background: var(--input-bg); border: 1px solid var(--border); width: 36px; height: 36px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
 
-  /* MODAL DE ESCÁNER EN VIVO */
+  /* MODAL DE ESCÁNER EN VIVO CON ZOOM */
   .scanner-modal {
     position: fixed; inset: 0; background: #000; z-index: 100;
     display: none; flex-direction: column; justify-content: space-between;
@@ -81,35 +81,40 @@
   .video-wrapper { position: relative; flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; }
   video#cam-video { width: 100%; height: 100%; object-fit: cover; }
   
-  /* Mira de enfoque central (solo lee dentro de esta caja) */
   .scan-overlay {
     position: absolute; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.5);
     pointer-events: none;
   }
   .scan-box {
-    width: 78%; max-width: 320px; height: 74px;
+    width: 80%; max-width: 320px; height: 76px;
     border: 2.5px solid #10b981; border-radius: 10px;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
     background: transparent;
     position: relative;
   }
   .scan-hint {
     color: #fff; font-size: 12px; font-weight: 600; margin-bottom: 12px;
-    background: rgba(15, 23, 42, 0.8); padding: 4px 10px; border-radius: 12px;
+    background: rgba(15, 23, 42, 0.85); padding: 4px 12px; border-radius: 12px;
     z-index: 2;
   }
   .scanner-controls {
-    background: var(--panel); padding: 14px; border-top: 1px solid var(--border);
-    display: flex; flex-direction: column; gap: 10px; z-index: 10;
+    background: var(--panel); padding: 12px; border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 8px; z-index: 10;
   }
+  .zoom-container {
+    display: flex; align-items: center; gap: 8px; padding: 0 4px;
+  }
+  .zoom-container span { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .zoom-slider { flex: 1; accent-color: var(--primary); height: 6px; }
+
   .live-readout {
     background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px; text-align: center;
+    padding: 6px; text-align: center;
   }
   .live-readout span { font-size: 11px; color: var(--text-muted); display: block; }
-  .live-readout strong { font-size: 24px; color: var(--success); letter-spacing: 0.5px; }
+  .live-readout strong { font-size: 22px; color: var(--success); letter-spacing: 0.5px; }
   .scanner-btns { display: flex; gap: 8px; }
 </style>
 </head>
@@ -142,7 +147,7 @@
       </div>
       <div class="resultado-box" id="resultado-unitario">0,00</div>
       <div class="row" style="margin-bottom:0;">
-        <button id="btn-foto" class="secondary">📷 Escanear</button>
+        <button id="btn-foto" class="secondary">📷 Escanear en Vivo</button>
         <button id="btn-agregar" class="success">➕ Añadir</button>
       </div>
     </div>
@@ -162,39 +167,44 @@
   </div>
 </div>
 
-<!-- VISOR DE ESCÁNER EN VIVO -->
+<!-- MODAL DE ESCÁNER EN VIVO CON ZOOM -->
 <div id="scanner-modal" class="scanner-modal">
   <div class="video-wrapper">
     <video id="cam-video" autoplay playsinline muted></video>
     <div class="scan-overlay">
-      <div class="scan-hint">Encuadra SOLO el número dentro del recuadro</div>
+      <div class="scan-hint">Mantén el precio dentro del recuadro</div>
       <div id="scan-box" class="scan-box"></div>
     </div>
   </div>
   <div class="scanner-controls">
+    <!-- BARRA DE ZOOM -->
+    <div class="zoom-container" id="zoom-control-wrapper" style="display:none;">
+      <span>🔍 Zoom</span>
+      <input type="range" id="zoom-slider" class="zoom-slider" min="1" max="5" step="0.1" value="1">
+    </div>
     <div class="live-readout">
-      <span id="scan-status">Iniciando cámara...</span>
+      <span id="scan-status">Apunta al número...</span>
       <strong id="live-number">--</strong>
     </div>
     <div class="scanner-btns">
-      <button id="btn-cancel-scan" class="secondary">Cancelar</button>
-      <button id="btn-confirm-scan" class="success" disabled>✅ Usar este número</button>
+      <button id="btn-cancel-scan" class="secondary">Cerrar</button>
+      <button id="btn-confirm-scan" class="success" disabled>✅ Usar este precio</button>
     </div>
   </div>
 </div>
 
 <script>
-  // --- ESTADO GLOBAL ---
   let tasasHistorial = {}; 
   let fechaActual = null;  
   let items = []; 
   let ocrWorker = null;
 
-  // Variables del escáner en vivo
   let videoStream = null;
   let scanInterval = null;
   let isProcessingFrame = false;
   let ultimoNumeroDetectado = null;
+  let trackCapabilities = null;
+  let pausedForStability = false; // Pausa temporal para dar tiempo al usuario
 
   const $ = id => document.getElementById(id);
   const elTasaUSD = $('tasa-usd'), elTasaEUR = $('tasa-eur');
@@ -212,17 +222,17 @@
   const scanStatusEl = $('scan-status');
   const liveNumberEl = $('live-number');
   const btnConfirmScan = $('btn-confirm-scan');
+  const zoomSlider = $('zoom-slider');
+  const zoomWrapper = $('zoom-control-wrapper');
 
   const simbolo = div => div === 'VES' ? 'Bs' : div === 'USD' ? '$' : '€';
   const getTasas = () => tasasHistorial[fechaActual] || { USD: 0, EUR: 0 };
 
-  // --- FORMATEO NUMÉRICO (PUNTO PARA MILES, COMA PARA DECIMALES) ---
   function formatearNumero(num) {
     if (isNaN(num)) return "0,00";
     return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  // --- 1. PERSISTENCIA ---
   function cargarHistorial() {
     try {
       const guardado = localStorage.getItem('tasasBCV_historial');
@@ -236,7 +246,6 @@
     } catch (e) {}
   }
 
-  // --- 2. FECHAS ---
   function getFechaHoy() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -279,7 +288,6 @@
     }
   }
 
-  // --- 3. API TASAS ---
   async function obtenerTasaAPI() {
     elTasaUSD.textContent = '...'; elTasaEUR.textContent = '...';
     let nuevaTasa = null;
@@ -311,7 +319,6 @@
     }
   }
 
-  // --- 4. TASA MANUAL ---
   function agregarTasaManual() {
     const fechaInput = prompt("Ingresa la fecha (YYYY-MM-DD):", getFechaHoy());
     if (!fechaInput || !/^\d{4}-\d{2}-\d{2}$/.test(fechaInput)) return;
@@ -331,13 +338,13 @@
     actualizarInterfazTasas();
   }
 
-  // --- 5. ESCÁNER EN VIVO CON RECORTE DE MIRA (ROI) ---
+  // --- OCR Y ESCÁNER EN VIVO ---
   async function prepararWorkerOCR() {
     if (ocrWorker) return ocrWorker;
-    ocrWorker = await Tesseract.createWorker('eng'); // 'eng' es más rápido y preciso para números puros
+    ocrWorker = await Tesseract.createWorker('eng');
     await ocrWorker.setParameters({
       tessedit_char_whitelist: '0123456789.,',
-      tessedit_pageseg_mode: '7' // Modo 7: Trata la imagen como UNA SOLA LÍNEA DE TEXTO
+      tessedit_pageseg_mode: '7' 
     });
     return ocrWorker;
   }
@@ -347,7 +354,9 @@
     ultimoNumeroDetectado = null;
     liveNumberEl.textContent = '--';
     btnConfirmScan.disabled = true;
-    scanStatusEl.textContent = 'Abriendo cámara...';
+    scanStatusEl.textContent = 'Iniciando cámara...';
+    pausedForStability = false;
+    zoomWrapper.style.display = 'none';
     scannerModal.classList.add('active');
 
     try {
@@ -358,14 +367,25 @@
       videoEl.srcObject = videoStream;
       await videoEl.play();
 
-      scanStatusEl.textContent = 'Apunta al precio...';
+      // Configurar soporte de Zoom si el dispositivo lo permite
+      const track = videoStream.getVideoTracks()[0];
+      trackCapabilities = track.getCapabilities ? track.getCapabilities() : {};
+      if (trackCapabilities.zoom) {
+        zoomSlider.min = trackCapabilities.zoom.min;
+        zoomSlider.max = trackCapabilities.zoom.max;
+        zoomSlider.step = trackCapabilities.zoom.step || 0.1;
+        zoomSlider.value = track.getSettings().zoom || trackCapabilities.zoom.min;
+        zoomWrapper.style.display = 'flex';
+      }
+
+      scanStatusEl.textContent = 'Encuadra el precio en el recuadro...';
       await prepararWorkerOCR();
 
-      // Analiza un fotograma recortado cada 850ms
-      scanInterval = setInterval(capturarYAnalizarRecuadro, 850);
+      // Intervalo de escaneo a 1.5 segundos para dar mayor fluidez y estabilidad
+      scanInterval = setInterval(capturarYAnalizarRecuadro, 1500);
     } catch (err) {
       console.error(err);
-      scanStatusEl.textContent = '❌ No se pudo acceder a la cámara.';
+      scanStatusEl.textContent = '❌ Error al acceder a la cámara.';
     }
   }
 
@@ -380,7 +400,7 @@
   }
 
   async function capturarYAnalizarRecuadro() {
-    if (isProcessingFrame || !videoStream || videoEl.readyState < 2 || !ocrWorker) return;
+    if (isProcessingFrame || pausedForStability || !videoStream || videoEl.readyState < 2 || !ocrWorker) return;
     isProcessingFrame = true;
 
     try {
@@ -388,7 +408,6 @@
       const vh = videoEl.videoHeight;
       if (!vw || !vh) { isProcessingFrame = false; return; }
 
-      // Calcular coordenadas exactas del recuadro verde en proporción al video real
       const boxRect = scanBoxEl.getBoundingClientRect();
       const vidRect = videoEl.getBoundingClientRect();
 
@@ -401,29 +420,26 @@
       const cropH = Math.min(vh - cropY, boxRect.height * scaleY);
 
       const canvas = document.createElement('canvas');
-      // Escalamos el recorte para que los dígitos tengan buen tamaño para Tesseract
-      canvas.width = 480;
-      canvas.height = Math.round(480 * (cropH / cropW));
+      canvas.width = 500;
+      canvas.height = Math.round(500 * (cropH / cropW));
       const ctx = canvas.getContext('2d');
 
       ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
 
-      // Preprocesamiento: Escala de grises + detección automática de fondo oscuro/claro + binarización
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imgData.data;
       let sumaBrillo = 0;
 
       for (let i = 0; i < data.length; i += 4) {
-        const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        sumaBrillo += lum;
+        sumaBrillo += (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
       }
       const promedioBrillo = sumaBrillo / (data.length / 4);
-      const esFondoOscuro = promedioBrillo < 115; // Si es pantalla en modo oscuro, invertimos colores
+      const esFondoOscuro = promedioBrillo < 115;
 
       for (let i = 0; i < data.length; i += 4) {
         const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
         let val = lum < promedioBrillo * 0.88 ? 0 : 255;
-        if (esFondoOscuro) val = 255 - val; // Dejar siempre texto negro sobre fondo blanco puro
+        if (esFondoOscuro) val = 255 - val;
         data[i] = val; data[i + 1] = val; data[i + 2] = val;
       }
       ctx.putImageData(imgData, 0, 0);
@@ -431,30 +447,22 @@
       const { data: { text } } = await ocrWorker.recognize(canvas);
       const limpioTexto = text.trim();
 
-      // Buscar el número más largo/completo dentro del recuadro
       const matches = limpioTexto.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?/g);
       if (matches && matches.length > 0) {
-        // Tomar la coincidencia con más dígitos (ignora basura suelta)
         matches.sort((a, b) => b.length - a.length);
         let raw = matches[0];
 
-        // Normalizar comas y puntos correctamente
         if (raw.includes(',') && raw.includes('.')) {
           if (raw.indexOf(',') > raw.indexOf('.')) {
-            raw = raw.replace(/\./g, '').replace(',', '.'); // Ej: 1.250,50 -> 1250.50
+            raw = raw.replace(/\./g, '').replace(',', '.');
           } else {
-            raw = raw.replace(/,/g, ''); // Ej: 1,250.50 -> 1250.50
+            raw = raw.replace(/,/g, '');
           }
         } else if (raw.includes(',')) {
-          // Si tiene una coma y 2 decimales al final (ej: 45,50), es decimal
           const partes = raw.split(',');
-          if (partes[partes.length - 1].length <= 2) {
-            raw = raw.replace(',', '.');
-          } else {
-            raw = raw.replace(/,/g, ''); // Separador de miles
-          }
+          if (partes[partes.length - 1].length <= 2) raw = raw.replace(',', '.');
+          else raw = raw.replace(/,/g, '');
         } else if (raw.includes('.')) {
-          // Si tiene puntos múltiples o 3 dígitos al final (ej: 12.500), es miles
           const partes = raw.split('.');
           if (partes.length > 2 || partes[partes.length - 1].length === 3) {
             raw = raw.replace(/\./g, '');
@@ -465,18 +473,33 @@
         if (!isNaN(numeroFinal) && numeroFinal > 0) {
           ultimoNumeroDetectado = numeroFinal;
           liveNumberEl.textContent = formatearNumero(numeroFinal);
-          scanStatusEl.textContent = '✅ Número detectado (toca Usar para confirmar)';
+          scanStatusEl.textContent = '✨ ¡Capturado! Toca Usar o espera...';
           btnConfirmScan.disabled = false;
+
+          // CONGELAR / PAUSAR 1.5 SEGUNDOS para dar tiempo al usuario de atrapar el precio
+          pausedForStability = true;
+          setTimeout(() => {
+            if (scannerModal.classList.contains('active')) {
+              pausedForStability = false;
+              scanStatusEl.textContent = 'Buscando otro precio...';
+            }
+          }, 1500);
         }
       }
-    } catch (e) {
-      // Silenciar errores de fotogramas sueltos
-    } finally {
+    } catch (e) {} finally {
       isProcessingFrame = false;
     }
   }
 
-  // --- 6. CONVERSIÓN Y LISTA ---
+  // Control deslizante de Zoom
+  zoomSlider.addEventListener('input', e => {
+    if (videoStream && trackCapabilities && trackCapabilities.zoom) {
+      const track = videoStream.getVideoTracks()[0];
+      track.applyConstraints({ advanced: [{ zoom: parseFloat(e.target.value) }] }).catch(() => {});
+    }
+  });
+
+  // --- CONVERSIÓN Y LISTA ---
   function convertir(monto, origen, destino) {
     const t = getTasas();
     if (origen === destino) return monto;
@@ -543,7 +566,7 @@
     inputPrecio.focus();
   }
 
-  // --- 7. EVENTOS ---
+  // --- EVENTOS ---
   $('btn-actualizar').addEventListener('click', obtenerTasaAPI);
   btnPrev.addEventListener('click', () => navegarFecha(-1));
   btnNext.addEventListener('click', () => navegarFecha(1));
@@ -569,7 +592,7 @@
     if (items.length && confirm('¿Borrar toda la lista?')) { items = []; renderizarLista(); }
   });
 
-  // --- 8. ARRANQUE ---
+  // --- ARRANQUE ---
   cargarHistorial();
   if (Object.keys(tasasHistorial).length > 0) {
     fechaActual = fechasOrdenadas().pop();
