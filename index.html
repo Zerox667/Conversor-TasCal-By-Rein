@@ -72,6 +72,17 @@
   .bottom-panel .val { font-size: 18px; font-weight: 700; color: var(--primary); line-height: 1.1; }
   .btn-limpiar { background: var(--input-bg); border: 1px solid var(--border); width: 36px; height: 36px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
 
+  /* AVISO FLOTANTE (TOAST) PARA BOTÓN ATRÁS */
+  .toast-exit {
+    position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.95); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 200;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    white-space: nowrap;
+  }
+  .toast-exit.show { opacity: 1; }
+
   /* MODAL DE ESCÁNER EN VIVO CON ZOOM */
   .scanner-modal {
     position: fixed; inset: 0; background: #000; z-index: 100;
@@ -167,6 +178,9 @@
   </div>
 </div>
 
+<!-- AVISO BOTÓN ATRÁS -->
+<div id="toast-exit" class="toast-exit">Toca atrás de nuevo para salir</div>
+
 <!-- MODAL DE ESCÁNER EN VIVO CON ZOOM -->
 <div id="scanner-modal" class="scanner-modal">
   <div class="video-wrapper">
@@ -177,7 +191,6 @@
     </div>
   </div>
   <div class="scanner-controls">
-    <!-- BARRA DE ZOOM -->
     <div class="zoom-container" id="zoom-control-wrapper" style="display:none;">
       <span>🔍 Zoom</span>
       <input type="range" id="zoom-slider" class="zoom-slider" min="1" max="5" step="0.1" value="1">
@@ -204,7 +217,8 @@
   let isProcessingFrame = false;
   let ultimoNumeroDetectado = null;
   let trackCapabilities = null;
-  let pausedForStability = false; // Pausa temporal para dar tiempo al usuario
+  let pausedForStability = false;
+  let ultimoToqueAtras = 0;
 
   const $ = id => document.getElementById(id);
   const elTasaUSD = $('tasa-usd'), elTasaEUR = $('tasa-eur');
@@ -215,6 +229,7 @@
   const inputPrecio = $('precio'), inputMult = $('multiplicador');
   const selOrigen = $('divisa-origen'), selDestino = $('divisa-destino');
   const btnPrev = $('btn-prev'), btnNext = $('btn-next');
+  const toastExit = $('toast-exit');
 
   const scannerModal = $('scanner-modal');
   const videoEl = $('cam-video');
@@ -233,10 +248,16 @@
     return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  function cargarHistorial() {
+  // --- 1. PERSISTENCIA (TASAS Y LISTA DE PRODUCTOS) ---
+  function cargarDatosGuardados() {
     try {
-      const guardado = localStorage.getItem('tasasBCV_historial');
-      if (guardado) tasasHistorial = JSON.parse(guardado);
+      const guardadoTasas = localStorage.getItem('tasasBCV_historial');
+      if (guardadoTasas) tasasHistorial = JSON.parse(guardadoTasas);
+    } catch (e) {}
+
+    try {
+      const guardadoItems = localStorage.getItem('tasCal_items');
+      if (guardadoItems) items = JSON.parse(guardadoItems);
     } catch (e) {}
   }
 
@@ -246,6 +267,40 @@
     } catch (e) {}
   }
 
+  function guardarItems() {
+    try {
+      localStorage.setItem('tasCal_items', JSON.stringify(items));
+    } catch (e) {}
+  }
+
+  // --- PROTECCIÓN CONTRA BOTÓN ATRÁS ACCIDENTAL ---
+  function iniciarProteccionAtras() {
+    // Empujamos un estado inicial al historial del navegador
+    history.pushState({ app: 'tascal' }, '');
+
+    window.addEventListener('popstate', () => {
+      // 1. Si el escáner está abierto, el botón atrás lo cierra y vuelve a la calculadora
+      if (scannerModal.classList.contains('active')) {
+        cerrarEscaner();
+        history.pushState({ app: 'tascal' }, '');
+        return;
+      }
+
+      // 2. Si está en la pantalla principal, exige doble toque en menos de 2 segundos para salir
+      const ahora = Date.now();
+      if (ahora - ultimoToqueAtras < 2000) {
+        // Permite salir en el segundo toque
+        history.back();
+      } else {
+        ultimoToqueAtras = ahora;
+        history.pushState({ app: 'tascal' }, '');
+        toastExit.classList.add('show');
+        setTimeout(() => toastExit.classList.remove('show'), 2000);
+      }
+    });
+  }
+
+  // --- 2. FECHAS ---
   function getFechaHoy() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -288,6 +343,7 @@
     }
   }
 
+  // --- 3. API TASAS ---
   async function obtenerTasaAPI() {
     elTasaUSD.textContent = '...'; elTasaEUR.textContent = '...';
     let nuevaTasa = null;
@@ -319,6 +375,7 @@
     }
   }
 
+  // --- 4. TASA MANUAL ---
   function agregarTasaManual() {
     const fechaInput = prompt("Ingresa la fecha (YYYY-MM-DD):", getFechaHoy());
     if (!fechaInput || !/^\d{4}-\d{2}-\d{2}$/.test(fechaInput)) return;
@@ -338,7 +395,7 @@
     actualizarInterfazTasas();
   }
 
-  // --- OCR Y ESCÁNER EN VIVO ---
+  // --- 5. OCR Y ESCÁNER EN VIVO ---
   async function prepararWorkerOCR() {
     if (ocrWorker) return ocrWorker;
     ocrWorker = await Tesseract.createWorker('eng');
@@ -367,7 +424,6 @@
       videoEl.srcObject = videoStream;
       await videoEl.play();
 
-      // Configurar soporte de Zoom si el dispositivo lo permite
       const track = videoStream.getVideoTracks()[0];
       trackCapabilities = track.getCapabilities ? track.getCapabilities() : {};
       if (trackCapabilities.zoom) {
@@ -381,7 +437,6 @@
       scanStatusEl.textContent = 'Encuadra el precio en el recuadro...';
       await prepararWorkerOCR();
 
-      // Intervalo de escaneo a 1.5 segundos para dar mayor fluidez y estabilidad
       scanInterval = setInterval(capturarYAnalizarRecuadro, 1500);
     } catch (err) {
       console.error(err);
@@ -476,7 +531,6 @@
           scanStatusEl.textContent = '✨ ¡Capturado! Toca Usar o espera...';
           btnConfirmScan.disabled = false;
 
-          // CONGELAR / PAUSAR 1.5 SEGUNDOS para dar tiempo al usuario de atrapar el precio
           pausedForStability = true;
           setTimeout(() => {
             if (scannerModal.classList.contains('active')) {
@@ -491,7 +545,6 @@
     }
   }
 
-  // Control deslizante de Zoom
   zoomSlider.addEventListener('input', e => {
     if (videoStream && trackCapabilities && trackCapabilities.zoom) {
       const track = videoStream.getVideoTracks()[0];
@@ -540,7 +593,11 @@
     });
 
     elLista.querySelectorAll('.del').forEach(b => {
-      b.addEventListener('click', () => { items.splice(+b.dataset.i, 1); renderizarLista(); });
+      b.addEventListener('click', () => {
+        items.splice(+b.dataset.i, 1);
+        guardarItems(); // Guardar cambios al eliminar un producto
+        renderizarLista();
+      });
     });
 
     if (items.length === 0) {
@@ -558,6 +615,7 @@
     if (t.USD === 0) { alert('Primero selecciona o actualiza una tasa'); return; }
     
     items.push({ precio, mult, origen: selOrigen.value });
+    guardarItems(); // Guardar lista en memoria local
     setTimeout(() => { document.querySelector('.scroll-area').scrollTop = document.querySelector('.scroll-area').scrollHeight; }, 50);
 
     inputPrecio.value = ''; inputMult.value = '1';
@@ -589,15 +647,22 @@
   });
 
   $('btn-limpiar').addEventListener('click', () => {
-    if (items.length && confirm('¿Borrar toda la lista?')) { items = []; renderizarLista(); }
+    if (items.length && confirm('¿Borrar toda la lista?')) {
+      items = [];
+      guardarItems(); // Limpiar también de la memoria local
+      renderizarLista();
+    }
   });
 
   // --- ARRANQUE ---
-  cargarHistorial();
+  iniciarProteccionAtras();
+  cargarDatosGuardados();
+  
   if (Object.keys(tasasHistorial).length > 0) {
     fechaActual = fechasOrdenadas().pop();
     actualizarInterfazTasas();
   } else {
+    renderizarLista(); // Mostrar lista guardada aunque aún no haya tasa cargada
     obtenerTasaAPI();
   }
 </script>
