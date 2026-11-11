@@ -1,13 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Conversor TasCal</title>
-    <!-- Enlaces para PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
-    <!-- Soporte extra para iOS (iPhone) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
@@ -22,35 +20,18 @@
   .app-container { display: flex; flex-direction: column; height: 100%; }
   .top-panel { flex-shrink: 0; padding: 8px; display: flex; flex-direction: column; gap: 6px; background: var(--bg); z-index: 10; }
   .card { background: var(--panel); border-radius: 8px; padding: 8px 10px; box-shadow: 0 2px 4px rgba(0,0,0,.2); border: 1px solid var(--border); }
-  
-  /* Fila de tasas con flechas en los extremos */
   .tasa-row { display: flex; align-items: stretch; gap: 4px; }
-  .nav-btn { 
-    width: 28px; background: var(--input-bg); color: var(--text-muted); border: 1px solid var(--border); 
-    border-radius: 6px; font-size: 16px; display: flex; align-items: center; justify-content: center; 
-    cursor: pointer; flex-shrink: 0;
-  }
+  .nav-btn { width: 28px; background: var(--input-bg); color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
   .nav-btn:disabled { opacity: 0.3; }
   .nav-btn:active:not(:disabled) { background: var(--border); }
-  
-  .tasa-box { 
-    flex: 1; background: var(--input-bg); padding: 4px; border-radius: 6px; text-align: center; 
-    display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--border); 
-    min-width: 0;
-  }
+  .tasa-box { flex: 1; background: var(--input-bg); padding: 4px; border-radius: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--border); min-width: 0; }
   .tasa-box span { font-size: 9px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;}
   .tasa-box strong { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  
   .btn-refresh { width: 36px; background: var(--border); color: var(--text); border: none; border-radius: 6px; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
   .btn-refresh:active { background: var(--text-muted); }
-  
   .date-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding: 0 2px; }
   .date-label { font-size: 10px; color: var(--text-muted); font-weight: 600; }
-  .btn-manual { 
-    background: none; border: none; color: var(--primary); font-size: 11px; font-weight: 600; 
-    cursor: pointer; padding: 2px 4px; text-decoration: underline; 
-  }
-
+  .btn-manual { background: none; border: none; color: var(--primary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 2px 4px; text-decoration: underline; }
   .row { display: flex; gap: 6px; margin-bottom: 6px; }
   .row > * { flex: 1; min-width: 0; }
   label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 3px; }
@@ -81,7 +62,6 @@
 
 <div class="app-container">
   <div class="top-panel">
-    <!-- FILA DE TASAS CON FLECHAS EN LOS EXTREMOS -->
     <div class="card" style="padding: 6px;">
       <div class="tasa-row">
         <button id="btn-prev" class="nav-btn" title="Tasa anterior">←</button>
@@ -105,7 +85,7 @@
         <div style="flex:2"><label>Precio</label><input type="number" id="precio" placeholder="0.00" step="0.01" min="0" inputmode="decimal"></div>
         <div style="flex:1"><label>Cant.</label><input type="number" id="multiplicador" value="1" step="1" min="1" inputmode="numeric"></div>
       </div>
-      <div class="resultado-box" id="resultado-unitario">0.00</div>
+      <div class="resultado-box" id="resultado-unitario">0,00</div>
       <div class="row" style="margin-bottom:0;">
         <button id="btn-foto" class="secondary">📷 Foto</button>
         <button id="btn-agregar" class="success">➕ Añadir</button>
@@ -122,7 +102,7 @@
   <div class="bottom-panel">
     <div>
       <div class="label">Total a pagar</div>
-      <div class="val" id="total-pagar">0.00 Bs</div>
+      <div class="val" id="total-pagar">0,00 Bs</div>
     </div>
     <button id="btn-limpiar" class="btn-limpiar">🗑️</button>
   </div>
@@ -132,8 +112,8 @@
 
 <script>
   // --- ESTADO GLOBAL ---
-  let tasasHistorial = {}; // { "YYYY-MM-DD": { USD: number, EUR: number } }
-  let fechaActual = null;  // "YYYY-MM-DD"
+  let tasasHistorial = {};
+  let fechaActual = null;
   let items = []; 
   let ocrWorker = null;
 
@@ -149,6 +129,15 @@
 
   const simbolo = div => div === 'VES' ? 'Bs' : div === 'USD' ? '$' : '€';
   const getTasas = () => tasasHistorial[fechaActual] || { USD: 0, EUR: 0 };
+
+  // --- FORMATEADOR DE NÚMEROS (Español Venezuela) ---
+  // Convierte 545988.35 a "545.988,35"
+  const formatNum = (num) => {
+    return new Intl.NumberFormat('es-VE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(num);
+  };
 
   // --- 1. PERSISTENCIA (LOCALSTORAGE) ---
   function cargarHistorial() {
@@ -176,18 +165,16 @@
     return `${d}/${m}/${y}`;
   }
 
-  // Devuelve el array de fechas ordenadas de más antigua a más reciente
   function fechasOrdenadas() {
     return Object.keys(tasasHistorial).sort();
   }
 
   function actualizarInterfazTasas() {
     const t = getTasas();
-    elTasaUSD.textContent = t.USD ? t.USD.toFixed(2) : '--';
-    elTasaEUR.textContent = t.EUR ? t.EUR.toFixed(2) : '--';
+    elTasaUSD.textContent = t.USD ? formatNum(t.USD) : '--';
+    elTasaEUR.textContent = t.EUR ? formatNum(t.EUR) : '--';
     elDateLabel.textContent = `Fecha: ${formatearFecha(fechaActual)}`;
 
-    // Habilitar/deshabilitar flechas
     const fechas = fechasOrdenadas();
     const idx = fechas.indexOf(fechaActual);
     btnPrev.disabled = idx <= 0;
@@ -201,7 +188,7 @@
     const fechas = fechasOrdenadas();
     if (fechas.length === 0) return;
     let idx = fechas.indexOf(fechaActual);
-    if (idx === -1) { idx = fechas.length - 1; } // Si no hay fecha actual, ir a la última
+    if (idx === -1) { idx = fechas.length - 1; }
     const nuevoIdx = idx + direccion;
     if (nuevoIdx >= 0 && nuevoIdx < fechas.length) {
       fechaActual = fechas[nuevoIdx];
@@ -236,41 +223,26 @@
     }
 
     if (nuevaTasa && nuevaTasa.USD > 0) {
-      // Guardamos la tasa bajo la fecha de HOY (fecha de consulta).
-      // Nota: Si consultas después de las 4 PM, esta tasa ya rige para mañana,
-      // pero la guardamos con la fecha de hoy para referencia.
-      // Para corregir esto, el usuario puede usar "Tasa manual" y poner la fecha correcta.
       const hoy = getFechaHoy();
       tasasHistorial[hoy] = nuevaTasa;
       guardarHistorial();
-      
       fechaActual = hoy;
       actualizarInterfazTasas();
-      console.log(`Tasa guardada desde ${fuente} para ${hoy}`);
     }
   }
 
   // --- 4. AÑADIR TASA MANUAL ---
   function agregarTasaManual() {
-    // Usamos prompt para mantener el diseño compacto sin modales complejos.
-    // Se puede mejorar con un modal, pero esto es funcional y rápido.
     const fechaInput = prompt("Ingresa la fecha (YYYY-MM-DD):", getFechaHoy());
     if (!fechaInput) return;
-    
-    // Validar formato básico
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaInput)) {
-      alert("Formato de fecha inválido. Usa YYYY-MM-DD (ej. 2026-11-10).");
-      return;
-    }
-
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaInput)) { alert("Formato inválido. Usa YYYY-MM-DD"); return; }
     const usdInput = prompt("Ingresa la tasa del Dólar (USD):");
     if (usdInput === null) return;
-    const usd = parseFloat(usdInput);
+    const usd = parseFloat(usdInput.replace(',', '.'));
     if (isNaN(usd) || usd <= 0) { alert("Tasa USD inválida."); return; }
-
     const eurInput = prompt("Ingresa la tasa del Euro (EUR):");
     if (eurInput === null) return;
-    const eur = parseFloat(eurInput);
+    const eur = parseFloat(eurInput.replace(',', '.'));
     if (isNaN(eur) || eur <= 0) { alert("Tasa EUR inválida."); return; }
 
     tasasHistorial[fechaInput] = { USD: usd, EUR: eur };
@@ -279,7 +251,7 @@
     actualizarInterfazTasas();
   }
 
-  // --- 5. INICIALIZACIÓN DEL OCR (SIN CAMBIOS) ---
+  // --- 5. INICIALIZACIÓN DEL OCR ---
   async function iniciarOCR() {
     try {
       ocrWorker = await Tesseract.createWorker('spa');
@@ -291,23 +263,38 @@
   }
   iniciarOCR();
 
-  function resizeImage(file, maxDimension = 800) {
+  // --- PREPROCESAMIENTO DE IMAGEN (ESCALA DE GRISES) ---
+  function preprocessImage(file, maxDimension = 800) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
         let width = img.width, height = img.height;
         if (width > height && width > maxDimension) { height *= maxDimension / width; width = maxDimension; }
         else if (height > maxDimension) { width *= maxDimension / height; height = maxDimension; }
+        
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convertir a Blanco y Negro (Escala de grises)
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3; // Promedio RGB
+          data[i] = avg;     // Red
+          data[i + 1] = avg; // Green
+          data[i + 2] = avg; // Blue
+        }
+        ctx.putImageData(imageData, 0, 0);
+
         resolve(canvas.toDataURL('image/jpeg', 0.8));
       };
       img.src = URL.createObjectURL(file);
     });
   }
 
-  // --- 6. LÓGICA DE CONVERSIÓN (ADAPTADA AL HISTORIAL) ---
+  // --- 6. LÓGICA DE CONVERSIÓN ---
   function convertir(monto, origen, destino) {
     const t = getTasas();
     if (origen === destino) return monto;
@@ -317,7 +304,6 @@
     if (destino === 'VES') {
       return origen === 'USD' ? monto * t.USD : monto * t.EUR;
     }
-    // Cruzado (ej. USD a EUR)
     const enVES = origen === 'USD' ? monto * t.USD : monto * t.EUR;
     return destino === 'USD' ? enVES / t.USD : enVES / t.EUR;
   }
@@ -326,14 +312,13 @@
     const precio = parseFloat(inputPrecio.value) || 0;
     const mult = parseFloat(inputMult.value) || 1;
     const t = getTasas();
-    if (precio <= 0 || t.USD === 0) { elResultado.textContent = '0.00'; return; }
+    if (precio <= 0 || t.USD === 0) { elResultado.textContent = '0,00'; return; }
     const r = convertir(precio * mult, selOrigen.value, selDestino.value);
-    elResultado.textContent = `${r.toFixed(2)} ${simbolo(selDestino.value)}`;
+    elResultado.textContent = `${formatNum(r)} ${simbolo(selDestino.value)}`;
   }
 
   function renderizarLista() {
     const destino = selDestino.value; const sim = simbolo(destino);
-    const t = getTasas();
     elLista.innerHTML = ''; let total = 0;
 
     items.forEach((item, i) => {
@@ -344,10 +329,10 @@
       const li = document.createElement('li');
       li.innerHTML = `
         <div class="info">
-          <div><strong>${item.mult}</strong> × ${simbolo(item.origen)}${item.precio.toFixed(2)}</div>
-          <div class="detalle">${simbolo(item.origen)}${enOrigen.toFixed(2)} → ${sim}${convertido.toFixed(2)}</div>
+          <div><strong>${item.mult}</strong> × ${simbolo(item.origen)}${formatNum(item.precio)}</div>
+          <div class="detalle">${simbolo(item.origen)}${formatNum(enOrigen)} → ${sim}${formatNum(convertido)}</div>
         </div>
-        <div class="valor">${sim}${convertido.toFixed(2)}</div>
+        <div class="valor">${sim}${formatNum(convertido)}</div>
         <button class="del" data-i="${i}">×</button>
       `;
       elLista.appendChild(li);
@@ -358,9 +343,9 @@
     });
 
     if (items.length === 0) {
-      elEmpty.style.display = 'block'; elTotal.textContent = `0.00 ${sim}`;
+      elEmpty.style.display = 'block'; elTotal.textContent = `0,00 ${sim}`;
     } else {
-      elEmpty.style.display = 'none'; elTotal.textContent = `${total.toFixed(2)} ${sim}`;
+      elEmpty.style.display = 'none'; elTotal.textContent = `${formatNum(total)} ${sim}`;
     }
   }
 
@@ -375,11 +360,12 @@
     setTimeout(() => { document.querySelector('.scroll-area').scrollTop = document.querySelector('.scroll-area').scrollHeight; }, 50);
 
     inputPrecio.value = ''; inputMult.value = '1';
-    elResultado.textContent = '0.00'; elOcr.textContent = '';
+    elResultado.textContent = '0,00'; elOcr.textContent = '';
     renderizarLista();
     inputPrecio.focus();
   }
 
+  // --- 7. PROCESAMIENTO DE IMAGEN Y EXTRACCIÓN INTELIGENTE ---
   async function procesarImagen(file) {
     if (!ocrWorker) {
       elOcr.textContent = 'Iniciando motor... espera.';
@@ -388,20 +374,54 @@
     }
     elOcr.textContent = 'Optimizando imagen...';
     try {
-      const imagenOptimizada = await resizeImage(file, 800);
+      const imagenOptimizada = await preprocessImage(file, 800);
       elOcr.textContent = 'Leyendo precio...';
       const { data: { text } } = await ocrWorker.recognize(imagenOptimizada);
-      const m = text.match(/(\d+(?:\s*[.,]\s*\d+)?)/);
-      if (m) {
-        let numLimpio = m[1].replace(/\s/g, '').replace(',', '.');
-        inputPrecio.value = numLimpio;
-        elOcr.textContent = `✅ Detectado: ${m[1]}`;
+      
+      // Limpiar el texto de espacios para facilitar la búsqueda
+      let cleanText = text.replace(/\s+/g, '');
+
+      // 1. Buscar patrones que parezcan precios: 123,45 o 123.45 o 1.234,56
+      const priceRegex = /\d{1,3}(?:\.\d{3})*(?:,\d{2})|\d+(?:[.,]\d{2})/g;
+      const matches = cleanText.match(priceRegex);
+
+      let precioFinal = null;
+
+      if (matches && matches.length > 0) {
+        // Si hay varios, ordenar por longitud (el más largo suele ser el precio total)
+        matches.sort((a, b) => b.length - a.length);
+        let bestMatch = matches[0];
+        
+        // Convertir a formato estándar (punto para decimales)
+        if (bestMatch.includes('.') && bestMatch.includes(',')) {
+            bestMatch = bestMatch.replace(/\./g, '').replace(',', '.');
+        } else {
+            bestMatch = bestMatch.replace(',', '.');
+        }
+        precioFinal = parseFloat(bestMatch);
+      } else {
+        // 2. Si no hay patrones claros, buscar cualquier número (el más largo)
+        const anyNum = cleanText.match(/\d+/g);
+        if (anyNum) {
+          anyNum.sort((a, b) => b.length - a.length);
+          precioFinal = parseFloat(anyNum[0]);
+        }
+      }
+
+      if (precioFinal !== null && !isNaN(precioFinal)) {
+        inputPrecio.value = precioFinal; // El input HTML solo acepta punto
+        elOcr.textContent = `✅ Detectado: ${formatNum(precioFinal)}`;
         recalcularPreview();
-      } else { elOcr.textContent = '❌ No se detectó. Intenta de nuevo.'; }
-    } catch (err) { elOcr.textContent = '❌ Error al procesar.'; }
+      } else {
+        elOcr.textContent = '❌ No se detectó. Intenta acercarte más.';
+      }
+    } catch (err) { 
+      console.error(err);
+      elOcr.textContent = '❌ Error al procesar.'; 
+    }
   }
 
-  // --- 7. EVENTOS ---
+  // --- 8. EVENTOS ---
   $('btn-actualizar').addEventListener('click', obtenerTasaAPI);
   btnPrev.addEventListener('click', () => navegarFecha(-1));
   btnNext.addEventListener('click', () => navegarFecha(1));
@@ -412,39 +432,35 @@
   selOrigen.addEventListener('change', recalcularPreview);
   selDestino.addEventListener('change', () => { recalcularPreview(); renderizarLista(); });
   $('btn-agregar').addEventListener('click', agregarItem);
+  
   $('btn-foto').addEventListener('click', () => $('input-foto').click());
   $('input-foto').addEventListener('change', e => {
     const f = e.target.files[0];
     if (f) procesarImagen(f);
     e.target.value = '';
   });
+  
   $('btn-limpiar').addEventListener('click', () => {
     if (items.length && confirm('¿Borrar toda la lista?')) { items = []; renderizarLista(); }
   });
 
-  // --- 8. ARRANQUE ---
+  // --- 9. ARRANQUE ---
   cargarHistorial();
-  
   if (Object.keys(tasasHistorial).length > 0) {
-    // Si hay historial, mostrar la fecha más reciente
     fechaActual = fechasOrdenadas().pop();
     actualizarInterfazTasas();
   } else {
-    // Si no hay historial, obtener la tasa actual automáticamente
     obtenerTasaAPI();
   }
 </script>
 <script>
-// ==================== REGISTRO DE PWA ====================
-let newWorker;
-  // --- 9. REGISTRO DEL SERVICE WORKER (PWA) ---
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('PWA Lista y en caché', reg.scope))
-        .catch(err => console.log('Error al registrar PWA', err));
+        .then(reg => console.log('PWA Lista', reg.scope))
+        .catch(err => console.log('Error PWA', err));
     });
   }
-  </script>
+</script>
 </body>
 </html>
