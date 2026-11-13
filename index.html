@@ -42,21 +42,22 @@
   .btn-refresh:active { background: var(--text-muted); }
   
   .date-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding: 0 2px; }
-  .date-label { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+  .date-label { font-size: 11px; color: var(--text-muted); font-weight: 600; }
   .btn-manual { 
     background: none; border: none; color: var(--primary); font-size: 11px; font-weight: 600; 
-    cursor: pointer; padding: 2px 4px; text-decoration: underline; 
+    cursor: pointer; padding: 2px 4px; text-decoration: underline; height: auto;
   }
 
   .row { display: flex; gap: 6px; margin-bottom: 6px; }
   .row > * { flex: 1; min-width: 0; }
   label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 3px; }
-  input, select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 16px; height: 38px; background: var(--input-bg); color: var(--text); }
+  input, select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 16px; height: 38px; background: var(--input-bg); color: var(--text); color-scheme: dark; }
   input:focus, select:focus { outline: 2px solid var(--primary); border-color: transparent; }
   button { padding: 0 10px; border: none; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; height: 38px; color: var(--text); transition: opacity 0.2s; }
   button:active { opacity: .7; }
   button.success { background: var(--success); flex: 2; color: #fff;}
   button.secondary { background: var(--border); flex: 1; }
+  button.danger { background: var(--danger); flex: 1; color: #fff; }
   .resultado-box { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 6px; text-align: center; font-size: 20px; font-weight: 700; color: var(--success); margin-bottom: 6px; min-height: 38px; display: flex; align-items: center; justify-content: center; }
   .scroll-area { flex: 1; overflow-y: auto; padding: 0 8px 8px 8px; }
   .lista { list-style: none; padding: 0; margin: 0; }
@@ -72,16 +73,40 @@
   .bottom-panel .val { font-size: 18px; font-weight: 700; color: var(--primary); line-height: 1.1; }
   .btn-limpiar { background: var(--input-bg); border: 1px solid var(--border); width: 36px; height: 36px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
 
-  /* AVISO FLOTANTE (TOAST) PARA BOTÓN ATRÁS */
-  .toast-exit {
+  /* NOTIFICACIONES FLOTANTES (TOASTS) */
+  .toast-msg {
     position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.95); color: var(--text); border: 1px solid var(--border);
-    padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 200;
+    background: rgba(15, 23, 42, 0.96); color: var(--text); border: 1px solid var(--primary);
+    padding: 9px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5); z-index: 300;
     opacity: 0; pointer-events: none; transition: opacity 0.25s;
-    white-space: nowrap;
+    white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
   }
-  .toast-exit.show { opacity: 1; }
+  .toast-msg.show { opacity: 1; }
+
+  /* MODALES PERSONALIZADOS (TASA MANUAL Y CONFIRMACIONES) */
+  .custom-modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.72); z-index: 150;
+    display: none; align-items: center; justify-content: center; padding: 16px;
+    backdrop-filter: blur(2px);
+  }
+  .custom-modal-backdrop.active { display: flex; }
+  .custom-modal {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    width: 100%; max-width: 340px; padding: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .custom-modal h3 { margin: 0; font-size: 16px; color: var(--text); text-align: center; }
+  .custom-modal p { margin: 0; font-size: 13px; color: var(--text-muted); text-align: center; line-height: 1.4; }
+  
+  /* Selector de tipo de moneda en modal */
+  .currency-tabs { display: flex; gap: 4px; background: var(--input-bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
+  .currency-tab {
+    flex: 1; height: 30px; font-size: 12px; background: transparent; color: var(--text-muted);
+    border-radius: 6px; padding: 0 4px;
+  }
+  .currency-tab.active { background: var(--primary); color: #fff; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
 
   /* MODAL DE ESCÁNER EN VIVO CON ZOOM */
   .scanner-modal {
@@ -178,10 +203,54 @@
   </div>
 </div>
 
-<!-- AVISO BOTÓN ATRÁS -->
-<div id="toast-exit" class="toast-exit">Toca atrás de nuevo para salir</div>
+<!-- NOTIFICACIÓN FLOTANTE ÚNICA -->
+<div id="toast-msg" class="toast-msg"></div>
 
-<!-- MODAL DE ESCÁNER EN VIVO CON ZOOM -->
+<!-- MODAL PERSONALIZADO: TASA MANUAL -->
+<div id="modal-manual" class="custom-modal-backdrop">
+  <div class="custom-modal">
+    <h3>Actualizar Tasa Manual</h3>
+    <div class="currency-tabs">
+      <button type="button" class="currency-tab active" data-mode="USD">Solo Dólar ($)</button>
+      <button type="button" class="currency-tab" data-mode="EUR">Solo Euro (€)</button>
+      <button type="button" class="currency-tab" data-mode="BOTH">Ambas</button>
+    </div>
+
+    <div id="group-usd">
+      <label>Tasa Dólar (USD en Bs)</label>
+      <input type="number" id="manual-usd" placeholder="Ej: 45,50" step="0.01" min="0" inputmode="decimal">
+    </div>
+
+    <div id="group-eur" style="display:none;">
+      <label>Tasa Euro (EUR en Bs)</label>
+      <input type="number" id="manual-eur" placeholder="Ej: 49,20" step="0.01" min="0" inputmode="decimal">
+    </div>
+
+    <div>
+      <label>Fecha de vigencia (toca para cambiar)</label>
+      <input type="date" id="manual-date">
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" id="btn-cancel-manual" class="secondary">Cancelar</button>
+      <button type="button" id="btn-save-manual" class="success">Guardar Tasa</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERSONALIZADO: CONFIRMAR BORRADO -->
+<div id="modal-confirm" class="custom-modal-backdrop">
+  <div class="custom-modal">
+    <h3>¿Borrar toda la lista?</h3>
+    <p>Se eliminarán todos los productos calculados hasta el momento.</p>
+    <div class="modal-actions">
+      <button type="button" id="btn-cancel-clear" class="secondary">Cancelar</button>
+      <button type="button" id="btn-confirm-clear" class="danger">Sí, borrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ESCÁNER EN VIVO -->
 <div id="scanner-modal" class="scanner-modal">
   <div class="video-wrapper">
     <video id="cam-video" autoplay playsinline muted></video>
@@ -219,6 +288,8 @@
   let trackCapabilities = null;
   let pausedForStability = false;
   let ultimoToqueAtras = 0;
+  let toastTimeout = null;
+  let modoTasaManual = 'USD';
 
   const $ = id => document.getElementById(id);
   const elTasaUSD = $('tasa-usd'), elTasaEUR = $('tasa-eur');
@@ -229,8 +300,10 @@
   const inputPrecio = $('precio'), inputMult = $('multiplicador');
   const selOrigen = $('divisa-origen'), selDestino = $('divisa-destino');
   const btnPrev = $('btn-prev'), btnNext = $('btn-next');
-  const toastExit = $('toast-exit');
+  const toastEl = $('toast-msg');
 
+  const modalManual = $('modal-manual');
+  const modalConfirm = $('modal-confirm');
   const scannerModal = $('scanner-modal');
   const videoEl = $('cam-video');
   const scanBoxEl = $('scan-box');
@@ -248,7 +321,17 @@
     return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  // --- 1. PERSISTENCIA (TASAS Y LISTA DE PRODUCTOS) ---
+  // --- SISTEMA DE NOTIFICACIONES FLOTANTES (REEMPLAZA A ALERT) ---
+  function mostrarAviso(mensaje, duracion = 2400) {
+    clearTimeout(toastTimeout);
+    toastEl.textContent = mensaje;
+    toastEl.classList.add('show');
+    toastTimeout = setTimeout(() => {
+      toastEl.classList.remove('show');
+    }, duracion);
+  }
+
+  // --- 1. PERSISTENCIA ---
   function cargarDatosGuardados() {
     try {
       const guardadoTasas = localStorage.getItem('tasasBCV_historial');
@@ -273,43 +356,69 @@
     } catch (e) {}
   }
 
-  // --- PROTECCIÓN CONTRA BOTÓN ATRÁS ACCIDENTAL ---
   function iniciarProteccionAtras() {
-    // Empujamos un estado inicial al historial del navegador
     history.pushState({ app: 'tascal' }, '');
-
     window.addEventListener('popstate', () => {
-      // 1. Si el escáner está abierto, el botón atrás lo cierra y vuelve a la calculadora
       if (scannerModal.classList.contains('active')) {
         cerrarEscaner();
         history.pushState({ app: 'tascal' }, '');
         return;
       }
-
-      // 2. Si está en la pantalla principal, exige doble toque en menos de 2 segundos para salir
+      if (modalManual.classList.contains('active')) {
+        modalManual.classList.remove('active');
+        history.pushState({ app: 'tascal' }, '');
+        return;
+      }
+      if (modalConfirm.classList.contains('active')) {
+        modalConfirm.classList.remove('active');
+        history.pushState({ app: 'tascal' }, '');
+        return;
+      }
       const ahora = Date.now();
       if (ahora - ultimoToqueAtras < 2000) {
-        // Permite salir en el segundo toque
         history.back();
       } else {
         ultimoToqueAtras = ahora;
         history.pushState({ app: 'tascal' }, '');
-        toastExit.classList.add('show');
-        setTimeout(() => toastExit.classList.remove('show'), 2000);
+        mostrarAviso('Toca atrás de nuevo para salir', 2000);
       }
     });
   }
 
-  // --- 2. FECHAS ---
+  // --- 2. GESTIÓN DE FECHAS Y ESTILOS VISUALES ---
   function getFechaHoy() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
-  function formatearFecha(fechaStr) {
+  function obtenerFechaEfectivaInicial() {
+    const hoyStr = getFechaHoy();
+    if (tasasHistorial[hoyStr]) return hoyStr;
+
+    const d = new Date();
+    const diaSemana = d.getDay();
+    if (diaSemana === 0 || diaSemana === 6) {
+      const diasAAtrazar = diaSemana === 0 ? 2 : 1;
+      d.setDate(d.getDate() - diasAAtrazar);
+      const viernesStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (tasasHistorial[viernesStr]) return viernesStr;
+    }
+
+    const fechas = Object.keys(tasasHistorial).sort();
+    return fechas.length > 0 ? fechas.pop() : hoyStr;
+  }
+
+  // Devuelve HTML estilizado con "HOY" llamativo y la fecha en tono claro legible
+  function formatearFechaHTML(fechaStr) {
     if (!fechaStr) return '--';
     const [y, m, d] = fechaStr.split('-');
-    return `${d}/${m}/${y}`;
+    const fechaFmt = `${d}/${m}/${y}`;
+    const hoyStr = getFechaHoy();
+
+    if (fechaStr === hoyStr) {
+      return `<span style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; font-size: 10px; letter-spacing: 0.4px; margin-right: 4px;">HOY</span><span style="color: #e2e8f0; font-weight: 600;">${fechaFmt}</span>`;
+    }
+    return `<span style="color: #cbd5e1; font-weight: 600;">${fechaFmt}</span>`;
   }
 
   function fechasOrdenadas() {
@@ -320,7 +429,8 @@
     const t = getTasas();
     elTasaUSD.textContent = t.USD ? formatearNumero(t.USD) : '--';
     elTasaEUR.textContent = t.EUR ? formatearNumero(t.EUR) : '--';
-    elDateLabel.textContent = `Fecha: ${formatearFecha(fechaActual)}`;
+    // Usamos innerHTML para renderizar las etiquetas de color correctamente
+    elDateLabel.innerHTML = `Fecha: ${formatearFechaHTML(fechaActual)}`;
 
     const fechas = fechasOrdenadas();
     const idx = fechas.indexOf(fechaActual);
@@ -343,11 +453,14 @@
     }
   }
 
-  // --- 3. API TASAS ---
-  async function obtenerTasaAPI() {
-    elTasaUSD.textContent = '...'; elTasaEUR.textContent = '...';
-    let nuevaTasa = null;
+  // --- 3. ACTUALIZACIÓN INTELIGENTE DE TASAS ---
+  async function obtenerTasaAPI(silencioso = false) {
+    if (!silencioso) {
+      elTasaUSD.textContent = '...'; 
+      elTasaEUR.textContent = '...';
+    }
 
+    let nuevaTasa = null;
     try {
       const res = await fetch('https://bcvhoy.com/api/tasas');
       if (!res.ok) throw new Error();
@@ -360,42 +473,105 @@
         const d2 = await r2.json();
         nuevaTasa = { USD: d2.tasas.USD, EUR: d2.tasas.EUR };
       } catch {
-        elTasaUSD.textContent = 'Err'; elTasaEUR.textContent = 'Err';
-        alert('No se pudo obtener la tasa. Revisa tu conexión o usa "Tasa manual".');
+        if (!silencioso) {
+          mostrarAviso('Sin conexión. Usando tasas guardadas.');
+        }
+        if (!fechaActual) fechaActual = obtenerFechaEfectivaInicial();
+        actualizarInterfazTasas();
         return;
       }
     }
 
     if (nuevaTasa && nuevaTasa.USD > 0) {
       const hoy = getFechaHoy();
-      tasasHistorial[hoy] = nuevaTasa;
+      const tasaExistenteHoy = tasasHistorial[hoy];
+
+      if (!tasaExistenteHoy) {
+        tasasHistorial[hoy] = nuevaTasa;
+        fechaActual = hoy;
+      } else {
+        if (tasaExistenteHoy.USD !== nuevaTasa.USD) {
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          const maniana = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          tasasHistorial[maniana] = nuevaTasa;
+          fechaActual = maniana;
+          if (!silencioso) mostrarAviso('Tasa adelantada guardada para mañana');
+        } else {
+          fechaActual = hoy;
+          if (!silencioso) mostrarAviso('Tasa ya actualizada al día');
+        }
+      }
+
       guardarHistorial();
-      fechaActual = hoy;
       actualizarInterfazTasas();
     }
   }
 
-  // --- 4. TASA MANUAL ---
-  function agregarTasaManual() {
-    const fechaInput = prompt("Ingresa la fecha (YYYY-MM-DD):", getFechaHoy());
-    if (!fechaInput || !/^\d{4}-\d{2}-\d{2}$/.test(fechaInput)) return;
-    const usdInput = prompt("Ingresa la tasa del Dólar (USD):");
-    if (!usdInput) return;
-    const usd = parseFloat(usdInput.replace(',', '.'));
-    if (isNaN(usd) || usd <= 0) return;
-
-    const eurInput = prompt("Ingresa la tasa del Euro (EUR):");
-    if (!eurInput) return;
-    const eur = parseFloat(eurInput.replace(',', '.'));
-    if (isNaN(eur) || eur <= 0) return;
-
-    tasasHistorial[fechaInput] = { USD: usd, EUR: eur };
-    guardarHistorial();
-    fechaActual = fechaInput;
-    actualizarInterfazTasas();
+  // --- 4. MODAL PERSONALIZADO DE TASA MANUAL ---
+  function abrirModalManual() {
+    const tasasActuales = getTasas();
+    $('manual-date').value = fechaActual || getFechaHoy();
+    $('manual-usd').value = tasasActuales.USD > 0 ? tasasActuales.USD : '';
+    $('manual-eur').value = tasasActuales.EUR > 0 ? tasasActuales.EUR : '';
+    seleccionarModoManual('USD');
+    modalManual.classList.add('active');
+    setTimeout(() => $('manual-usd').focus(), 100);
   }
 
-  // --- 5. OCR Y ESCÁNER EN VIVO ---
+  function seleccionarModoManual(modo) {
+    modoTasaManual = modo;
+    document.querySelectorAll('.currency-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.mode === modo);
+    });
+    $('group-usd').style.display = (modo === 'USD' || modo === 'BOTH') ? 'block' : 'none';
+    $('group-eur').style.display = (modo === 'EUR' || modo === 'BOTH') ? 'block' : 'none';
+  }
+
+  document.querySelectorAll('.currency-tab').forEach(tab => {
+    tab.addEventListener('click', () => seleccionarModoManual(tab.dataset.mode));
+  });
+
+  $('btn-cancel-manual').addEventListener('click', () => modalManual.classList.remove('active'));
+
+  $('btn-save-manual').addEventListener('click', () => {
+    const fechaSel = $('manual-date').value;
+    if (!fechaSel) {
+      mostrarAviso('Selecciona una fecha válida');
+      return;
+    }
+
+    const existente = tasasHistorial[fechaSel] || getTasas();
+    let nuevoUSD = existente.USD || 0;
+    let nuevoEUR = existente.EUR || 0;
+
+    if (modoTasaManual === 'USD' || modoTasaManual === 'BOTH') {
+      const valUsd = parseFloat($('manual-usd').value.replace(',', '.'));
+      if (isNaN(valUsd) || valUsd <= 0) {
+        mostrarAviso('Ingresa un monto válido para el Dólar');
+        return;
+      }
+      nuevoUSD = valUsd;
+    }
+
+    if (modoTasaManual === 'EUR' || modoTasaManual === 'BOTH') {
+      const valEur = parseFloat($('manual-eur').value.replace(',', '.'));
+      if (isNaN(valEur) || valEur <= 0) {
+        mostrarAviso('Ingresa un monto válido para el Euro');
+        return;
+      }
+      nuevoEUR = valEur;
+    }
+
+    tasasHistorial[fechaSel] = { USD: nuevoUSD, EUR: nuevoEUR };
+    guardarHistorial();
+    fechaActual = fechaSel;
+    actualizarInterfazTasas();
+    modalManual.classList.remove('active');
+    mostrarAviso('✅ Tasa guardada correctamente');
+  });
+
+  // --- 5. ESCÁNER EN VIVO ---
   async function prepararWorkerOCR() {
     if (ocrWorker) return ocrWorker;
     ocrWorker = await Tesseract.createWorker('eng');
@@ -552,7 +728,7 @@
     }
   });
 
-  // --- CONVERSIÓN Y LISTA ---
+  // --- 6. CONVERSIÓN Y LISTA ---
   function convertir(monto, origen, destino) {
     const t = getTasas();
     if (origen === destino) return monto;
@@ -595,7 +771,7 @@
     elLista.querySelectorAll('.del').forEach(b => {
       b.addEventListener('click', () => {
         items.splice(+b.dataset.i, 1);
-        guardarItems(); // Guardar cambios al eliminar un producto
+        guardarItems();
         renderizarLista();
       });
     });
@@ -611,11 +787,24 @@
     const precio = parseFloat(inputPrecio.value);
     const mult = parseFloat(inputMult.value) || 1;
     const t = getTasas();
-    if (!precio || precio <= 0) { alert('Ingresa un precio válido'); return; }
-    if (t.USD === 0) { alert('Primero selecciona o actualiza una tasa'); return; }
+    
+    // Avisos modernos sin ventanas nativas del navegador
+    if (!precio || precio <= 0) { 
+      mostrarAviso('⚠️ Ingresa un precio válido');
+      inputPrecio.focus();
+      return; 
+    }
+    if (t.USD === 0 && (selOrigen.value === 'USD' || selDestino.value === 'USD')) { 
+      mostrarAviso('⚠️ Primero actualiza o ingresa la tasa USD');
+      return; 
+    }
+    if (t.EUR === 0 && (selOrigen.value === 'EUR' || selDestino.value === 'EUR')) { 
+      mostrarAviso('⚠️ Primero actualiza o ingresa la tasa EUR');
+      return; 
+    }
     
     items.push({ precio, mult, origen: selOrigen.value });
-    guardarItems(); // Guardar lista en memoria local
+    guardarItems();
     setTimeout(() => { document.querySelector('.scroll-area').scrollTop = document.querySelector('.scroll-area').scrollHeight; }, 50);
 
     inputPrecio.value = ''; inputMult.value = '1';
@@ -624,11 +813,11 @@
     inputPrecio.focus();
   }
 
-  // --- EVENTOS ---
-  $('btn-actualizar').addEventListener('click', obtenerTasaAPI);
+  // --- 7. EVENTOS ---
+  $('btn-actualizar').addEventListener('click', () => obtenerTasaAPI(false));
   btnPrev.addEventListener('click', () => navegarFecha(-1));
   btnNext.addEventListener('click', () => navegarFecha(1));
-  $('btn-manual').addEventListener('click', agregarTasaManual);
+  $('btn-manual').addEventListener('click', abrirModalManual);
 
   inputPrecio.addEventListener('input', recalcularPreview);
   inputMult.addEventListener('input', recalcularPreview);
@@ -646,25 +835,38 @@
     cerrarEscaner();
   });
 
+  // Modal de confirmación para limpiar lista
   $('btn-limpiar').addEventListener('click', () => {
-    if (items.length && confirm('¿Borrar toda la lista?')) {
-      items = [];
-      guardarItems(); // Limpiar también de la memoria local
-      renderizarLista();
+    if (items.length === 0) {
+      mostrarAviso('La lista ya está vacía');
+      return;
     }
+    modalConfirm.classList.add('active');
   });
 
-  // --- ARRANQUE ---
+  $('btn-cancel-clear').addEventListener('click', () => modalConfirm.classList.remove('active'));
+  $('btn-confirm-clear').addEventListener('click', () => {
+    items = [];
+    guardarItems();
+    renderizarLista();
+    modalConfirm.classList.remove('active');
+    mostrarAviso('🗑️ Lista borrada');
+  });
+
+  // --- 8. ARRANQUE OFFLINE-FIRST ---
   iniciarProteccionAtras();
   cargarDatosGuardados();
-  
+
   if (Object.keys(tasasHistorial).length > 0) {
-    fechaActual = fechasOrdenadas().pop();
+    fechaActual = obtenerFechaEfectivaInicial();
     actualizarInterfazTasas();
   } else {
-    renderizarLista(); // Mostrar lista guardada aunque aún no haya tasa cargada
-    obtenerTasaAPI();
+    fechaActual = getFechaHoy();
+    elDateLabel.innerHTML = `Fecha: ${formatearFechaHTML(fechaActual)}`;
+    renderizarLista();
   }
+
+  obtenerTasaAPI(true);
 </script>
 <script>
   if ('serviceWorker' in navigator) {
