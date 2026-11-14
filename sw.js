@@ -1,4 +1,4 @@
-const CACHE_NAME = 'conversor-cache-v9'; // Cambia el número si haces cambios grandes
+const CACHE_NAME = 'conversor-cache-v10'; // Cambia el número si haces cambios grandes
 const ASSETS = [
   './',
   './index.html',
