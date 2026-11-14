@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+<!-- Se eliminó el CDN bloqueante. Ahora se carga de forma segura para permitir uso offline -->
 <style>
   :root {
     --bg: #0f172a; --panel: #1e293b; --text: #f8fafc; --text-muted: #94a3b8;
@@ -99,7 +99,6 @@
   .custom-modal h3 { margin: 0; font-size: 16px; color: var(--text); text-align: center; }
   .custom-modal p { margin: 0; font-size: 13px; color: var(--text-muted); text-align: center; line-height: 1.4; }
   
-  /* Selector de tipo de moneda en modal */
   .currency-tabs { display: flex; gap: 4px; background: var(--input-bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
   .currency-tab {
     flex: 1; height: 30px; font-size: 12px; background: transparent; color: var(--text-muted);
@@ -203,10 +202,8 @@
   </div>
 </div>
 
-<!-- NOTIFICACIÓN FLOTANTE ÚNICA -->
 <div id="toast-msg" class="toast-msg"></div>
 
-<!-- MODAL PERSONALIZADO: TASA MANUAL -->
 <div id="modal-manual" class="custom-modal-backdrop">
   <div class="custom-modal">
     <h3>Actualizar Tasa Manual</h3>
@@ -238,7 +235,6 @@
   </div>
 </div>
 
-<!-- MODAL PERSONALIZADO: CONFIRMAR BORRADO -->
 <div id="modal-confirm" class="custom-modal-backdrop">
   <div class="custom-modal">
     <h3>¿Borrar toda la lista?</h3>
@@ -250,7 +246,6 @@
   </div>
 </div>
 
-<!-- MODAL ESCÁNER EN VIVO -->
 <div id="scanner-modal" class="scanner-modal">
   <div class="video-wrapper">
     <video id="cam-video" autoplay playsinline muted></video>
@@ -321,7 +316,6 @@
     return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  // --- SISTEMA DE NOTIFICACIONES FLOTANTES (REEMPLAZA A ALERT) ---
   function mostrarAviso(mensaje, duracion = 2400) {
     clearTimeout(toastTimeout);
     toastEl.textContent = mensaje;
@@ -331,7 +325,6 @@
     }, duracion);
   }
 
-  // --- 1. PERSISTENCIA ---
   function cargarDatosGuardados() {
     try {
       const guardadoTasas = localStorage.getItem('tasasBCV_historial');
@@ -385,7 +378,6 @@
     });
   }
 
-  // --- 2. GESTIÓN DE FECHAS Y ESTILOS VISUALES ---
   function getFechaHoy() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -408,7 +400,6 @@
     return fechas.length > 0 ? fechas.pop() : hoyStr;
   }
 
-  // Devuelve HTML estilizado con "HOY" llamativo y la fecha en tono claro legible
   function formatearFechaHTML(fechaStr) {
     if (!fechaStr) return '--';
     const [y, m, d] = fechaStr.split('-');
@@ -429,7 +420,6 @@
     const t = getTasas();
     elTasaUSD.textContent = t.USD ? formatearNumero(t.USD) : '--';
     elTasaEUR.textContent = t.EUR ? formatearNumero(t.EUR) : '--';
-    // Usamos innerHTML para renderizar las etiquetas de color correctamente
     elDateLabel.innerHTML = `Fecha: ${formatearFechaHTML(fechaActual)}`;
 
     const fechas = fechasOrdenadas();
@@ -453,7 +443,35 @@
     }
   }
 
-  // --- 3. ACTUALIZACIÓN INTELIGENTE DE TASAS ---
+  // --- CARGA DINÁMICA SEGURA DE TESSERACT (NO BLOQUEA OFFLINE) ---
+  function cargarTesseractDinamico() {
+    return new Promise((resolve) => {
+      if (window.Tesseract) {
+        resolve(window.Tesseract);
+        return;
+      }
+      // Intentar cargar script con un tiempo límite corto (timeout de 3s)
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      script.async = true;
+      
+      const timer = setTimeout(() => {
+        script.onerror = null;
+        resolve(null); // Si no hay internet, se rechaza silenciosamente sin bloquear
+      }, 3000);
+
+      script.onload = () => {
+        clearTimeout(timer);
+        resolve(window.Tesseract);
+      };
+      script.onerror = () => {
+        clearTimeout(timer);
+        resolve(null);
+      };
+      document.head.appendChild(script);
+    });
+  }
+
   async function obtenerTasaAPI(silencioso = false) {
     if (!silencioso) {
       elTasaUSD.textContent = '...'; 
@@ -508,7 +526,6 @@
     }
   }
 
-  // --- 4. MODAL PERSONALIZADO DE TASA MANUAL ---
   function abrirModalManual() {
     const tasasActuales = getTasas();
     $('manual-date').value = fechaActual || getFechaHoy();
@@ -571,17 +588,22 @@
     mostrarAviso('✅ Tasa guardada correctamente');
   });
 
-  // --- 5. ESCÁNER EN VIVO ---
   async function prepararWorkerOCR() {
     if (ocrWorker) return ocrWorker;
-    ocrWorker = await Tesseract.createWorker('eng');
-    await ocrWorker.setParameters({
-      tessedit_char_whitelist: '0123456789.,',
-      tessedit_pageseg_mode: '7' 
-    });
-    return ocrWorker;
+    const libTesseract = await cargarTesseractDinamico();
+    if (!libTesseract) return null;
+
+    try {
+      ocrWorker = await libTesseract.createWorker('eng');
+      await ocrWorker.setParameters({
+        tessedit_char_whitelist: '0123456789.,',
+        tessedit_pageseg_mode: '7' 
+      });
+      return ocrWorker;
+    } catch (e) {
+      return null;
+    }
   }
-  prepararWorkerOCR().catch(() => {});
 
   async function abrirEscaner() {
     ultimoNumeroDetectado = null;
@@ -593,6 +615,12 @@
     scannerModal.classList.add('active');
 
     try {
+      const workerCheck = await prepararWorkerOCR();
+      if (!workerCheck) {
+        scanStatusEl.textContent = '❌ El escáner requiere internet la 1ª vez.';
+        return;
+      }
+
       videoStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false
@@ -611,8 +639,6 @@
       }
 
       scanStatusEl.textContent = 'Encuadra el precio en el recuadro...';
-      await prepararWorkerOCR();
-
       scanInterval = setInterval(capturarYAnalizarRecuadro, 1500);
     } catch (err) {
       console.error(err);
@@ -728,7 +754,6 @@
     }
   });
 
-  // --- 6. CONVERSIÓN Y LISTA ---
   function convertir(monto, origen, destino) {
     const t = getTasas();
     if (origen === destino) return monto;
@@ -788,7 +813,6 @@
     const mult = parseFloat(inputMult.value) || 1;
     const t = getTasas();
     
-    // Avisos modernos sin ventanas nativas del navegador
     if (!precio || precio <= 0) { 
       mostrarAviso('⚠️ Ingresa un precio válido');
       inputPrecio.focus();
@@ -813,7 +837,6 @@
     inputPrecio.focus();
   }
 
-  // --- 7. EVENTOS ---
   $('btn-actualizar').addEventListener('click', () => obtenerTasaAPI(false));
   btnPrev.addEventListener('click', () => navegarFecha(-1));
   btnNext.addEventListener('click', () => navegarFecha(1));
@@ -835,7 +858,6 @@
     cerrarEscaner();
   });
 
-  // Modal de confirmación para limpiar lista
   $('btn-limpiar').addEventListener('click', () => {
     if (items.length === 0) {
       mostrarAviso('La lista ya está vacía');
@@ -853,7 +875,7 @@
     mostrarAviso('🗑️ Lista borrada');
   });
 
-  // --- 8. ARRANQUE OFFLINE-FIRST ---
+  // --- ARRANQUE 100% OFFLINE-FIRST ---
   iniciarProteccionAtras();
   cargarDatosGuardados();
 
@@ -866,6 +888,7 @@
     renderizarLista();
   }
 
+  // Petición silenciosa de fondo (si no hay red, no afecta en nada y abre al instante)
   obtenerTasaAPI(true);
 </script>
 <script>
