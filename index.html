@@ -3,900 +3,2084 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Conversor TasCal</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<!-- Se eliminó el CDN bloqueante. Ahora se carga de forma segura para permitir uso offline -->
+<title>Mi Horario</title>
+<!-- Enlaces para PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2a2a3e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- Librería para exportar a imagen -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-  :root {
-    --bg: #0f172a; --panel: #1e293b; --text: #f8fafc; --text-muted: #94a3b8;
-    --border: #334155; --primary: #3b82f6; --success: #10b981; --danger: #ef4444;
-    --input-bg: #0f172a;
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #1e1e2e; color: #e0e0e0; margin: 0;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; padding: 0; height: 100%; height: 100dvh; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; font-size: 14px; }
-  .app-container { display: flex; flex-direction: column; height: 100%; }
-  .top-panel { flex-shrink: 0; padding: 8px; display: flex; flex-direction: column; gap: 6px; background: var(--bg); z-index: 10; }
-  .card { background: var(--panel); border-radius: 8px; padding: 8px 10px; box-shadow: 0 2px 4px rgba(0,0,0,.2); border: 1px solid var(--border); }
   
-  .tasa-row { display: flex; align-items: stretch; gap: 4px; }
-  .nav-btn { 
-    width: 28px; background: var(--input-bg); color: var(--text-muted); border: 1px solid var(--border); 
-    border-radius: 6px; font-size: 16px; display: flex; align-items: center; justify-content: center; 
-    cursor: pointer; flex-shrink: 0;
+  header {
+    background: #2a2a3e; padding: 10px 15px;
+    display: flex; gap: 8px; align-items: center;
+    flex-wrap: wrap; border-bottom: 2px solid #444;
   }
-  .nav-btn:disabled { opacity: 0.3; }
-  .nav-btn:active:not(:disabled) { background: var(--border); }
+  header h1 { margin: 0; font-size: 18px; flex-grow: 1; display: flex; align-items: center; gap: 6px; }
   
-  .tasa-box { 
-    flex: 1; background: var(--input-bg); padding: 4px; border-radius: 6px; text-align: center; 
-    display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--border); 
-    min-width: 0;
-  }
-  .tasa-box span { font-size: 9px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;}
-  .tasa-box strong { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  
-  .btn-refresh { width: 36px; background: var(--border); color: var(--text); border: none; border-radius: 6px; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-  .btn-refresh:active { background: var(--text-muted); }
-  
-  .date-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding: 0 2px; }
-  .date-label { font-size: 11px; color: var(--text-muted); font-weight: 600; }
-  .btn-manual { 
-    background: none; border: none; color: var(--primary); font-size: 11px; font-weight: 600; 
-    cursor: pointer; padding: 2px 4px; text-decoration: underline; height: auto;
-  }
-
-  .row { display: flex; gap: 6px; margin-bottom: 6px; }
-  .row > * { flex: 1; min-width: 0; }
-  label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 3px; }
-  input, select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 16px; height: 38px; background: var(--input-bg); color: var(--text); color-scheme: dark; }
-  input:focus, select:focus { outline: 2px solid var(--primary); border-color: transparent; }
-  button { padding: 0 10px; border: none; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; height: 38px; color: var(--text); transition: opacity 0.2s; }
-  button:active { opacity: .7; }
-  button.success { background: var(--success); flex: 2; color: #fff;}
-  button.secondary { background: var(--border); flex: 1; }
-  button.danger { background: var(--danger); flex: 1; color: #fff; }
-  .resultado-box { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 6px; text-align: center; font-size: 20px; font-weight: 700; color: var(--success); margin-bottom: 6px; min-height: 38px; display: flex; align-items: center; justify-content: center; }
-  .scroll-area { flex: 1; overflow-y: auto; padding: 0 8px 8px 8px; }
-  .lista { list-style: none; padding: 0; margin: 0; }
-  .lista li { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; border: 1px solid var(--border); gap: 8px; }
-  .lista .info { flex: 1; min-width: 0; }
-  .lista .info div:first-child { font-size: 13px; color: var(--text); }
-  .lista .detalle { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
-  .lista .valor { font-weight: 700; white-space: nowrap; font-size: 15px; color: var(--text); }
-  .lista .del { background: rgba(239, 68, 68, 0.15); color: var(--danger); width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 6px; font-size: 16px; flex-shrink: 0; border: 1px solid rgba(239, 68, 68, 0.3); }
-  .empty { text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px; }
-  .bottom-panel { flex-shrink: 0; background: var(--panel); border-top: 1px solid var(--border); padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; }
-  .bottom-panel .label { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-  .bottom-panel .val { font-size: 18px; font-weight: 700; color: var(--primary); line-height: 1.1; }
-  .btn-limpiar { background: var(--input-bg); border: 1px solid var(--border); width: 36px; height: 36px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
-
-  /* NOTIFICACIONES FLOTANTES (TOASTS) */
-  .toast-msg {
-    position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.96); color: var(--text); border: 1px solid var(--primary);
-    padding: 9px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.5); z-index: 300;
-    opacity: 0; pointer-events: none; transition: opacity 0.25s;
-    white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
-  }
-  .toast-msg.show { opacity: 1; }
-
-  /* MODALES PERSONALIZADOS (TASA MANUAL Y CONFIRMACIONES) */
-  .custom-modal-backdrop {
-    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.72); z-index: 150;
-    display: none; align-items: center; justify-content: center; padding: 16px;
-    backdrop-filter: blur(2px);
-  }
-  .custom-modal-backdrop.active { display: flex; }
-  .custom-modal {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-    width: 100%; max-width: 340px; padding: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    display: flex; flex-direction: column; gap: 12px;
-  }
-  .custom-modal h3 { margin: 0; font-size: 16px; color: var(--text); text-align: center; }
-  .custom-modal p { margin: 0; font-size: 13px; color: var(--text-muted); text-align: center; line-height: 1.4; }
-  
-  .currency-tabs { display: flex; gap: 4px; background: var(--input-bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
-  .currency-tab {
-    flex: 1; height: 30px; font-size: 12px; background: transparent; color: var(--text-muted);
-    border-radius: 6px; padding: 0 4px;
-  }
-  .currency-tab.active { background: var(--primary); color: #fff; }
-  .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
-
-  /* MODAL DE ESCÁNER EN VIVO CON ZOOM */
-  .scanner-modal {
-    position: fixed; inset: 0; background: #000; z-index: 100;
-    display: none; flex-direction: column; justify-content: space-between;
-  }
-  .scanner-modal.active { display: flex; }
-  .video-wrapper { position: relative; flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-  video#cam-video { width: 100%; height: 100%; object-fit: cover; }
-  
-  .scan-overlay {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
-    pointer-events: none;
-  }
-  .scan-box {
-    width: 80%; max-width: 320px; height: 76px;
-    border: 2.5px solid #10b981; border-radius: 10px;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  /* Botón oculto / discreto en el título */
+  #secretResetBtn {
     background: transparent;
-    position: relative;
+    border: none;
+    color: #444;
+    font-size: 10px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: color 0.3s;
   }
-  .scan-hint {
-    color: #fff; font-size: 12px; font-weight: 600; margin-bottom: 12px;
-    background: rgba(15, 23, 42, 0.85); padding: 4px 12px; border-radius: 12px;
-    z-index: 2;
+  #secretResetBtn:hover {
+    color: #ff5555;
+    background: rgba(255, 85, 85, 0.1);
   }
-  .scanner-controls {
-    background: var(--panel); padding: 12px; border-top: 1px solid var(--border);
-    display: flex; flex-direction: column; gap: 8px; z-index: 10;
+  
+  button, select, input {
+    font-family: inherit; font-size: 13px; padding: 6px 10px;
+    background: #3a3a52; color: #e0e0e0;
+    border: 1px solid #555; border-radius: 4px; cursor: pointer;
   }
-  .zoom-container {
-    display: flex; align-items: center; gap: 8px; padding: 0 4px;
-  }
-  .zoom-container span { font-size: 11px; color: var(--text-muted); font-weight: 600; }
-  .zoom-slider { flex: 1; accent-color: var(--primary); height: 6px; }
+  button:hover { background: #4a4a66; }
+  button.active { background: #4a7c59; border-color: #6abf7a; }
+  button.lock-active { background: #7c4a4a; border-color: #bf6a6a; }
 
-  .live-readout {
-    background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px;
-    padding: 6px; text-align: center;
+  /* VISTAS PRINCIPALES */
+  .view-section { display: none; padding: 15px; flex-grow: 1; }
+  .view-section.active-view { display: block; }
+
+  /* VISTA CALENDARIO */
+  .calHeader {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 12px;
+    flex-wrap: wrap; gap: 8px;
   }
-  .live-readout span { font-size: 11px; color: var(--text-muted); display: block; }
-  .live-readout strong { font-size: 22px; color: var(--success); letter-spacing: 0.5px; }
-  .scanner-btns { display: flex; gap: 8px; }
+  .calHeaderGroup { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .calGrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .calDayName { text-align: center; font-weight: bold; color: #aaa; padding: 4px; font-size: 12px; }
+  .calDay {
+    background: #2a2a3e; border-radius: 6px; padding: 6px;
+    min-height: 85px; cursor: pointer; border: 2px solid transparent;
+    overflow: hidden; font-size: 11px; display: flex; flex-direction: column;
+  }
+  .calDay:hover { border-color: #6abf7a; }
+  .calDay.otherMonth { opacity: 0.3; }
+  .calDay.today { border-color: #ffb84d; }
+  .calDay .dayNum { font-weight: bold; font-size: 14px; margin-bottom: 2px; }
+  .calDay .mini { font-size: 9px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 3px; border-radius: 3px; }
+  .calDay .mini.est { color: #fff; }
+  .calDay .mini.eval { color: #ffcc66; font-weight: bold; background: #443b22; }
+  .calDay .mini.note { color: #cc99ff; font-style: italic; background: #332244; }
+
+  /* VISTA DÍA */
+  .dayHeader {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+  }
+  .dayHeader h2 { margin: 0; font-size: 16px; }
+
+  .cols { display: grid; grid-template-columns: 90px 1fr 1fr 1fr; gap: 4px; width: 100%; }
+  .colHead { text-align: center; font-weight: bold; padding: 6px; border-radius: 4px; background: #2a2a3e; font-size: 12px; }
+  .colHead.trabajo { background: #4a2a2a; color: #ff9a9a; }
+  .colHead.estudio { background: #2a3a4a; color: #9ac9ff; }
+  .colHead.resultado { background: #2a4a2a; color: #9aff9a; }
+
+  .hourLabel {
+    text-align: right; padding: 2px 6px; font-size: 10px; color: #bbb;
+    line-height: 24px; white-space: nowrap;
+  }
+  .cell {
+    height: 24px; border-radius: 3px; background: #26263a;
+    border: 1px solid #333; cursor: pointer;
+    display: flex; align-items: center; padding: 0 4px;
+    font-size: 10px; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis;
+    user-select: none; position: relative;
+  }
+  .cell.trabajo { background: #5c3535; border-color: #8a4a4a; }
+  .cell.estudio { background: #354a5c; border-color: #4a6a8a; color: #fff; }
+  .cell.resultado { cursor: default; }
+  .cell.resultado.win-t { background: #5c3535; border-color: #8a4a4a; }
+  .cell.resultado.win-e { background: #354a5c; border-color: #4a6a8a; color: #fff; }
+  .cell.resultado.conflict-t { background: #6a3a2a; border-color: #a85a4a; }
+  .cell.resultado.conflict-e { background: #2a3a5c; border-color: #4a5aa8; color: #fff; }
+
+  .brushBar { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; font-size: 12px; }
+  .dayTools { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* VISTA SEMANAL */
+  .weekHeader {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+  }
+  .weekGrid {
+    display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 3px;
+    width: 100%;
+  }
+  .weekColHead {
+    text-align: center; font-weight: bold; padding: 4px 2px; border-radius: 4px;
+    background: #2a2a3e; cursor: pointer; font-size: 11px;
+  }
+  .weekColHead.today { background: #4a3a1a; border: 1px solid #ffb84d; }
+  .weekColHead .wd { display: block; font-size: 9px; color: #aaa; }
+  .weekColHead .dn { display: block; font-size: 13px; }
+  .weekColHead .btnOpenNotesWeek { background: #4a7c59; border: none; font-size: 8px; padding: 2px; margin-top: 2px; border-radius: 2px; width: 100%; }
+
+  .weekHourLabel {
+    text-align: right; padding: 2px 4px; font-size: 8px; color: #bbb;
+    line-height: 20px; white-space: nowrap;
+  }
+  .weekCell {
+    height: 20px; border-radius: 2px; background: #26263a;
+    border: 1px solid #333; cursor: pointer;
+    font-size: 8px; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis;
+    padding: 0 2px; line-height: 18px; position: relative;
+  }
+  .weekCell.trabajo { background: #5c3535; border-color: #8a4a4a; }
+  .weekCell.estudio { background: #354a5c; border-color: #4a6a8a; color: #fff; }
+  .weekCell.mixed { background: #3a3a52; border-color: #666; }
+
+  /* MODALES Y ELEMENTOS AUXILIARES */
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; }
+  .modal.open { display: flex; }
+  .modalBox { background: #2a2a3e; padding: 15px; border-radius: 8px; max-width: 500px; width: 92%; max-height: 90vh; overflow-y: auto; }
+  .modalBox h3 { margin-top: 0; }
+  .modalBox label { display: block; margin: 8px 0 2px; font-size: 13px; }
+  .modalBox input[type=text], .modalBox select, .modalBox textarea { width: 100%; padding: 6px; background: #3a3a52; color: #e0e0e0; border: 1px solid #555; border-radius: 4px; }
+  .modalBox textarea { resize: vertical; height: 70px; }
+  .modalBox .row { display: flex; gap: 8px; margin-top: 15px; }
+  .hint { font-size: 12px; color: #aaa; }
+
+  /* MODAL DE ALERTA PERSONALIZADO */
+  #customAlertModal .modalBox { max-width: 380px; text-align: center; }
+  #customAlertText { font-size: 14px; margin: 15px 0; color: #f0f0f0; line-height: 1.4; }
+
+  .evalItemRow, .noteItemRow { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12px; background: #2f2f45; padding: 5px 8px; border-radius: 4px; }
+  .evalItemRow.done span { text-decoration: line-through; color: #888; }
+  .evalItemRow input[type=checkbox] { cursor: pointer; }
+  .evalItemRow .delEval, .noteItemRow .delNote { margin-left: auto; background: #6a2a2a; border: none; color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer; }
+
+  .patternItem, .subjectItem { background: #222233; border: 1px solid #444; border-radius: 6px; padding: 10px; margin-bottom: 10px; position: relative; }
+  .patternItem .delPat, .subjectItem .delSub { position: absolute; top: 10px; right: 10px; background: #6a2a2a; border-color: #8a3a3a; padding: 2px 8px; font-size: 11px; cursor: pointer; }
+
+  /* CALENDARIO MANUAL PARA DÍAS SUELTOS */
+  .manualCalGrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 10px; }
+  .manualDayName { text-align: center; font-weight: bold; color: #aaa; font-size: 11px; padding: 2px; }
+  .manualDayCell {
+    background: #1e1e2e; border: 1px solid #444; border-radius: 4px;
+    min-height: 45px; padding: 4px; cursor: pointer; font-size: 10px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .manualDayCell:hover { border-color: #6abf7a; }
+  .manualDayCell.otherMonth { opacity: 0.2; }
+  .manualDayCell .mNum { font-weight: bold; font-size: 11px; }
+  .manualDayMarks { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+  .manualMarkDot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  .blkRow { display: grid; grid-template-columns: 1fr 1fr 1fr 30px; gap: 4px; margin-bottom: 4px; align-items: center; }
+  .blkRow input { width: 100%; }
+  .blkRow .del { background: #6a2a2a; border-color: #8a3a3a; padding: 4px 8px; }
+  .blkHead { display: grid; grid-template-columns: 1fr 1fr 1fr 30px; gap: 4px; font-size: 12px; color: #aaa; margin-bottom: 4px; }
+
+  @media (max-width: 768px) {
+    header { padding: 8px 10px; }
+    header h1 { font-size: 16px; }
+    button, select, input { font-size: 11px; padding: 4px 6px; }
+    .view-section { padding: 8px; }
+    .calDay { min-height: 60px; padding: 3px; font-size: 9px; }
+    .calDay .dayNum { font-size: 11px; }
+  }
+
+  @media (max-height: 500px) and (orientation: landscape) {
+    header { padding: 4px 10px; }
+    header h1 { font-size: 14px; }
+    .weekGrid { grid-template-columns: 65px repeat(7, 1fr); gap: 2px; }
+    .cols { grid-template-columns: 75px 1fr 1fr 1fr; gap: 2px; }
+    .hourLabel, .weekHourLabel { font-size: 8px; line-height: 16px; padding: 0 2px; }
+    .cell { height: 16px; font-size: 8px; }
+    .weekCell { height: 16px; font-size: 7px; line-height: 14px; }
+    .colHead { padding: 2px; font-size: 10px; }
+    .calDay { min-height: 40px; padding: 2px; font-size: 8px; }
+    .calDay .mini { font-size: 7px; }
+    .modalBox { max-height: 96vh; padding: 10px; }
+  }
 </style>
 </head>
 <body>
 
-<div class="app-container">
-  <div class="top-panel">
-    <div class="card" style="padding: 6px;">
-      <div class="tasa-row">
-        <button id="btn-prev" class="nav-btn" title="Tasa anterior">←</button>
-        <div class="tasa-box"><span>Dólar</span><strong id="tasa-usd">--</strong></div>
-        <button id="btn-actualizar" class="btn-refresh" title="Actualizar Tasa">↻</button>
-        <div class="tasa-box"><span>Euro</span><strong id="tasa-eur">--</strong></div>
-        <button id="btn-next" class="nav-btn" title="Tasa siguiente">→</button>
-      </div>
-      <div class="date-bar">
-        <span id="date-label" class="date-label">Fecha: --</span>
-        <button id="btn-manual" class="btn-manual">+ Tasa manual</button>
-      </div>
-    </div>
+<header>
+  <h1>
+    Mi Horario
+    <button id="secretResetBtn" title="Restablecer sistema" onclick="triggerSecretReset()">⚙</button>
+  </h1>
+  <button id="tabCalendar" class="tab active">Calendario</button>
+  <button id="tabWeek" class="tab">Semana</button>
+  <button id="tabDay" class="tab">D&iacute;a</button>
+  <button id="lockBtn" class="lock-active" title="Bloquear o desbloquear edici&oacute;n">&#128275; Bloqueado (Solo ver)</button>
+  <button id="openSubjects" style="background:#2a3a4a; border-color:#4a6a8a;">Configurar Materias</button>
+  <button id="openBlocks" style="display:none;">Bloques horarios</button>
+  <button id="exportBtn">Exportar</button>
+  <button id="importBtn">Importar</button>
+  <input type="file" id="importFile" style="display:none" accept=".json">
+</header>
 
-    <div class="card">
-      <div class="row">
-        <div><label>De</label><select id="divisa-origen"><option value="USD">USD $</option><option value="EUR">EUR €</option><option value="VES">VES Bs</option></select></div>
-        <div><label>A</label><select id="divisa-destino"><option value="VES" selected>VES Bs</option><option value="USD">USD $</option><option value="EUR">EUR €</option></select></div>
-      </div>
-      <div class="row">
-		<div style="flex:2"><label>Precio</label><input type="text" id="precio" placeholder="0,00" inputmode="decimal" autocomplete="one-time-code" autocorrect="off" spellcheck="false"></div>
-        <div style="flex:1"><label>Cant.</label><input type="number" id="multiplicador" value="1" step="1" min="1" inputmode="numeric"></div>
-      </div>
-      <div class="resultado-box" id="resultado-unitario">0,00</div>
-      <div class="row" style="margin-bottom:0;">
-        <button id="btn-foto" class="secondary">📷 Escanear en Vivo</button>
-        <button id="btn-agregar" class="success">➕ Añadir</button>
-      </div>
+<!-- VISTA CALENDARIO -->
+<div id="calendarView" class="view-section active-view">
+  <div class="calHeader">
+    <div class="calHeaderGroup">
+      <button id="prevMonth">&laquo;</button>
+      <span id="monthLabel" style="font-size:18px; font-weight:bold; margin:0 6px;"></span>
+      <button id="nextMonth">&raquo;</button>
+      <button id="calCurrentMonth">Mes actual</button>
+    </div>
+    <div class="calHeaderGroup">
+      <select id="calFilterWork" title="Filtrar trabajo / usuario" style="background:#3a3a52; color:#e0e0e0; border:1px solid #555; border-radius:4px; padding:6px;">
+        <option value="">Mostrar: Todos</option>
+      </select>
+      <button id="openPattern" style="background:#4a2a6a; border-color:#7a4abf;">Configurar patrones</button>
+      <button id="applyPattern">Aplicar al mes</button>
+      <button id="applyPatternYear">Aplicar al a&ntilde;o</button>
+      <button id="exportCalImg" style="background:#2a4a3e; border-color:#3a6a5a;">Guardar Calendario (Imagen)</button>
+    </div>
+  </div>
+  <div class="calGrid" id="calGrid"></div>
+</div>
+
+<!-- VISTA DÍA -->
+<div id="dayView" class="view-section">
+  <div class="dayHeader">
+    <button id="backToCal">&laquo; Volver al calendario</button>
+    <h2 id="dayTitle">&mdash;</h2>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button id="openDayNotesModal" style="background:#4a7c59; border:none; font-weight:bold;">+ Notas y Evaluaciones</button>
+      <select id="dayPriority">
+        <option value="trabajo">Prioridad día: Trabajo</option>
+        <option value="estudio">Prioridad día: Estudio</option>
+      </select>
     </div>
   </div>
 
-  <div class="scroll-area">
-    <ul class="lista" id="lista-items"></ul>
-    <div id="empty-msg" class="empty">Añade productos para ver el total</div>
+  <div class="brushBar">
+    <label>Trabajo:</label>
+    <select id="dayWorkSelect"></select>
+    <label>Estudio (Materia):</label>
+    <select id="daySubjectSelect"></select>
+    <span class="hint" id="editHint">Modo bloqueo activo: no se puede editar ni pintar.</span>
   </div>
 
-  <div class="bottom-panel">
+  <div class="cols" id="cols"></div>
+
+  <div class="dayTools" id="dayToolsContainer" style="display:none; margin-top:15px;">
+    <button id="fillTrabajoDay">Rellenar Trabajo (todo)</button>
+    <button id="clearTrabajo">Limpiar Trabajo</button>
+    <button id="applyWorkHoursToPatternDays" style="background:#4a5c7c; border-color:#6a8abf;">Aplicar horas de este trabajo a sus días</button>
+    <button id="fillEstudioDay">Rellenar Estudio (todo)</button>
+    <button id="clearEstudio">Limpiar Estudio</button>
+    <button id="repeatStudy" style="background:#5c4a7c; border-color:#7a6abf;">Repetir estudio semanal</button>
+    <button id="clearDay">Limpiar d&iacute;a completo</button>
+  </div>
+</div>
+
+<!-- VISTA SEMANAL -->
+<div id="weekView" class="view-section">
+  <div class="weekHeader">
     <div>
-      <div class="label">Total a pagar</div>
-      <div class="val" id="total-pagar">0,00 Bs</div>
+      <button id="prevWeek">&laquo;</button>
+      <span id="weekLabel" style="font-size:16px; font-weight:bold; margin:0 12px;"></span>
+      <button id="nextWeek">&raquo;</button>
     </div>
-    <button id="btn-limpiar" class="btn-limpiar">🗑️</button>
+    <div style="display:flex; gap:8px;">
+      <button id="weekToday">Ir a semana actual</button>
+      <button id="exportWeekImg" style="background:#2a4a3e; border-color:#3a6a5a;">Guardar Semana (Imagen)</button>
+    </div>
   </div>
+  <div class="weekGrid" id="weekGrid"></div>
 </div>
 
-<div id="toast-msg" class="toast-msg"></div>
+<!-- Ventana Modal de Notas y Evaluaciones del Día -->
+<div id="dayNotesModal" class="modal">
+  <div class="modalBox">
+    <h3 id="modalNotesTitle">Notas y Evaluaciones</h3>
+    
+    <h4 style="margin:10px 0 4px; color:#ffcc66; font-size:14px;">Evaluaciones / Tareas</h4>
+    <div id="modalEvalsList"></div>
+    <button id="openAddEvalModal" style="width:100%; margin-top:6px; background:#4a7c59; border:none; font-size:12px;">+ A&ntilde;adir Evaluaci&oacute;n</button>
 
-<div id="modal-manual" class="custom-modal-backdrop">
-  <div class="custom-modal">
-    <h3>Actualizar Tasa Manual</h3>
-    <div class="currency-tabs">
-      <button type="button" class="currency-tab active" data-mode="USD">Solo Dólar ($)</button>
-      <button type="button" class="currency-tab" data-mode="EUR">Solo Euro (€)</button>
-      <button type="button" class="currency-tab" data-mode="BOTH">Ambas</button>
-    </div>
+    <h4 style="margin:15px 0 4px; color:#cc99ff; font-size:14px;">Notas Libres del D&iacute;a</h4>
+    <div id="modalNotesList" style="margin-bottom:8px;"></div>
+    <textarea id="modalNoteInput" placeholder="Escribe una nota para este d&iacute;a..." style="width:100%; background:#1e1e2e; color:#e0e0e0; border:1px solid #555; padding:6px; border-radius:4px; font-family:inherit; resize:vertical; height:50px;"></textarea>
+    <button id="saveModalNoteBtn" style="width:100%; margin-top:6px; font-size:12px;">Agregar Nota</button>
 
-    <div id="group-usd">
-      <label>Tasa Dólar (USD en Bs)</label>
-      <input type="number" id="manual-usd" placeholder="Ej: 45,50" step="0.01" min="0" inputmode="decimal">
-    </div>
-
-    <div id="group-eur" style="display:none;">
-      <label>Tasa Euro (EUR en Bs)</label>
-      <input type="number" id="manual-eur" placeholder="Ej: 49,20" step="0.01" min="0" inputmode="decimal">
-    </div>
-
-    <div>
-      <label>Fecha de vigencia (toca para cambiar)</label>
-      <input type="date" id="manual-date">
-    </div>
-
-    <div class="modal-actions">
-      <button type="button" id="btn-cancel-manual" class="secondary">Cancelar</button>
-      <button type="button" id="btn-save-manual" class="success">Guardar Tasa</button>
+    <div class="row" style="margin-top:20px;">
+      <button id="closeDayNotesModal" style="width:100%;">Cerrar Ventana</button>
     </div>
   </div>
 </div>
 
-<div id="modal-confirm" class="custom-modal-backdrop">
-  <div class="custom-modal">
-    <h3>¿Borrar toda la lista?</h3>
-    <p>Se eliminarán todos los productos calculados hasta el momento.</p>
-    <div class="modal-actions">
-      <button type="button" id="btn-cancel-clear" class="secondary">Cancelar</button>
-      <button type="button" id="btn-confirm-clear" class="danger">Sí, borrar</button>
+<!-- Modal Añadir Evaluación -->
+<div id="evalModal" class="modal">
+  <div class="modalBox">
+    <h3>A&ntilde;adir Evaluaci&oacute;n / Tarea</h3>
+    <label>Materia:</label>
+    <select id="evalSubjectSelect"></select>
+    <label>T&iacute;tulo de la evaluaci&oacute;n / tarea:</label>
+    <input type="text" id="evalTitleInput" placeholder="Ej: Parcial 1, Entrega de guía...">
+    <div class="row">
+      <button id="evalSaveBtn">Guardar</button>
+      <button id="evalCancelBtn">Cancelar</button>
     </div>
   </div>
 </div>
 
-<div id="scanner-modal" class="scanner-modal">
-  <div class="video-wrapper">
-    <video id="cam-video" autoplay playsinline muted></video>
-    <div class="scan-overlay">
-      <div class="scan-hint">Mantén el precio dentro del recuadro</div>
-      <div id="scan-box" class="scan-box"></div>
+<!-- Modal Configurar Materias (Estudio) -->
+<div id="subjectsModal" class="modal">
+  <div class="modalBox">
+    <h3>Configurar Materias (Estudio)</h3>
+    <p class="hint">Añade, edita el nombre o color, o elimina las materias que necesites.</p>
+    <div id="subjectsListContainer"></div>
+    <div class="row">
+      <button id="subAddBtn">+ A&ntilde;adir Materia</button>
+    </div>
+    <div class="row" style="margin-top:20px;">
+      <button id="subSave">Guardar cambios</button>
+      <button id="subCancel">Cancelar</button>
     </div>
   </div>
-  <div class="scanner-controls">
-    <div class="zoom-container" id="zoom-control-wrapper" style="display:none;">
-      <span>🔍 Zoom</span>
-      <input type="range" id="zoom-slider" class="zoom-slider" min="1" max="5" step="0.1" value="1">
+</div>
+
+<!-- Modal patrones de trabajo -->
+<div id="patternModal" class="modal">
+  <div class="modalBox">
+    <h3>Patrones de trabajo (M&uacute;ltiples)</h3>
+    <div id="patternsListContainer"></div>
+    <div class="row">
+      <button id="patAddBtn">+ A&ntilde;adir trabajo</button>
     </div>
-    <div class="live-readout">
-      <span id="scan-status">Apunta al número...</span>
-      <strong id="live-number">--</strong>
+    <div class="row" style="margin-top:15px; border-top:1px solid #444; padding-top:10px;">
+      <button id="openManualDaysModal" style="background:#4a5c7c; border-color:#6a8abf; width:100%;">📅 Marcar días sueltos (sin patrón)</button>
     </div>
-    <div class="scanner-btns">
-      <button id="btn-cancel-scan" class="secondary">Cerrar</button>
-      <button id="btn-confirm-scan" class="success" disabled>✅ Usar este precio</button>
+    <div class="row" style="margin-top:20px;">
+      <button id="patSave">Guardar</button>
+      <button id="patCancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nuevo Modal: Calendario de días sueltos (manuales) -->
+<div id="manualDaysModal" class="modal">
+  <div class="modalBox" style="max-width: 600px;">
+    <h3>Marcar Días Libres / Sueltos por Trabajo</h3>
+    <p class="hint">Selecciona primero un trabajo y haz clic en los días del calendario para marcarlos o desmarcarlos libremente.</p>
+    
+    <label>Selecciona el trabajo:</label>
+    <select id="manualJobSelect" style="margin-bottom: 10px;"></select>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
+      <button id="manPrevMonth">&laquo; Mes anterior</button>
+      <span id="manMonthLabel" style="font-weight: bold; font-size: 15px;"></span>
+      <button id="manNextMonth">Mes siguiente &raquo;</button>
+    </div>
+
+    <div class="manualCalGrid" id="manualCalGrid"></div>
+
+    <div class="row" style="margin-top:20px;">
+      <button id="closeManualModal" style="width:100%;">Volver a patrones</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal repetir estudio -->
+<div id="repeatModal" class="modal">
+  <div class="modalBox">
+    <h3>Repetir estudio semanal</h3>
+    <p class="hint">Se copiar&aacute; el estudio de este d&iacute;a (<span id="repWeekday"></span>) a todos los <span id="repWeekday2"></span> entre las fechas indicadas.</p>
+    <label>Desde</label>
+    <input type="date" id="repStart">
+    <label>Hasta</label>
+    <input type="date" id="repEndStudy">
+    <label><input type="checkbox" id="repOverwrite" checked> Sobrescribir el estudio ya existente en esos d&iacute;as</label>
+    <div class="row">
+      <button id="repSave">Aplicar</button>
+      <button id="repCancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal bloques horarios -->
+<div id="blocksModal" class="modal">
+  <div class="modalBox">
+    <h3>Bloques horarios</h3>
+    <div class="blkHead">
+      <div>Inicio</div><div>Fin</div><div>Etiqueta (opcional)</div><div></div>
+    </div>
+    <div id="blkList"></div>
+    <div class="row">
+      <button id="blkAdd">+ A&ntilde;adir bloque</button>
+      <button id="blkDefaults">Restaurar 24h</button>
+    </div>
+    <div class="row">
+      <button id="blkSave">Guardar</button>
+      <button id="blkCancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Alerta / Mensaje Personalizado -->
+<div id="customAlertModal" class="modal">
+  <div class="modalBox">
+    <h3 id="customAlertTitle" style="color: #ffb84d; margin-bottom: 5px;">Aviso</h3>
+    <div id="customAlertText"></div>
+    <div class="row" style="margin-top: 15px;">
+      <button id="customAlertOkBtn" style="width: 100%; background: #4a7c59; border-color: #6abf7a;">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmación Personalizado -->
+<div id="customConfirmModal" class="modal">
+  <div class="modalBox" style="max-width: 380px; text-align: center;">
+    <h3 style="color: #ffcc66; margin-bottom: 5px;">Confirmación</h3>
+    <div id="customConfirmText" style="font-size: 14px; margin: 15px 0; color: #f0f0f0; line-height: 1.4;"></div>
+    <div class="row" style="margin-top: 15px; display: flex; gap: 10px;">
+      <button id="customConfirmYesBtn" style="flex: 1; background: #4a7c59; border-color: #6abf7a;">Sí</button>
+      <button id="customConfirmNoBtn" style="flex: 1; background: #6a2a2a; border-color: #8a3a3a;">Cancelar</button>
     </div>
   </div>
 </div>
 
 <script>
-  let tasasHistorial = {}; 
-  let fechaActual = null;  
-  let items = []; 
-  let ocrWorker = null;
-
-  let videoStream = null;
-  let scanInterval = null;
-  let isProcessingFrame = false;
-  let ultimoNumeroDetectado = null;
-  let trackCapabilities = null;
-  let pausedForStability = false;
-  let ultimoToqueAtras = 0;
-  let toastTimeout = null;
-  let modoTasaManual = 'USD';
-
-  const $ = id => document.getElementById(id);
-  const elTasaUSD = $('tasa-usd'), elTasaEUR = $('tasa-eur');
-  const elDateLabel = $('date-label');
-  const elResultado = $('resultado-unitario');
-  const elLista = $('lista-items'), elEmpty = $('empty-msg');
-  const elTotal = $('total-pagar');
-  const inputPrecio = $('precio'), inputMult = $('multiplicador');
-  const selOrigen = $('divisa-origen'), selDestino = $('divisa-destino');
-  const btnPrev = $('btn-prev'), btnNext = $('btn-next');
-  const toastEl = $('toast-msg');
-
-  const modalManual = $('modal-manual');
-  const modalConfirm = $('modal-confirm');
-  const scannerModal = $('scanner-modal');
-  const videoEl = $('cam-video');
-  const scanBoxEl = $('scan-box');
-  const scanStatusEl = $('scan-status');
-  const liveNumberEl = $('live-number');
-  const btnConfirmScan = $('btn-confirm-scan');
-  const zoomSlider = $('zoom-slider');
-  const zoomWrapper = $('zoom-control-wrapper');
-
-  const simbolo = div => div === 'VES' ? 'Bs' : div === 'USD' ? '$' : '€';
-  const getTasas = () => tasasHistorial[fechaActual] || { USD: 0, EUR: 0 };
-
-  function formatearNumero(num) {
-    if (isNaN(num)) return "0,00";
-    return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  function mostrarAviso(mensaje, duracion = 2400) {
-    clearTimeout(toastTimeout);
-    toastEl.textContent = mensaje;
-    toastEl.classList.add('show');
-    toastTimeout = setTimeout(() => {
-      toastEl.classList.remove('show');
-    }, duracion);
-  }
-
-  function cargarDatosGuardados() {
-    try {
-      const guardadoTasas = localStorage.getItem('tasasBCV_historial');
-      if (guardadoTasas) tasasHistorial = JSON.parse(guardadoTasas);
-    } catch (e) {}
-
-    try {
-      const guardadoItems = localStorage.getItem('tasCal_items');
-      if (guardadoItems) items = JSON.parse(guardadoItems);
-    } catch (e) {}
-  }
-
-  function guardarHistorial() {
-    try {
-      localStorage.setItem('tasasBCV_historial', JSON.stringify(tasasHistorial));
-    } catch (e) {}
-  }
-
-  function guardarItems() {
-    try {
-      localStorage.setItem('tasCal_items', JSON.stringify(items));
-    } catch (e) {}
-  }
-
-  function iniciarProteccionAtras() {
-    history.pushState({ app: 'tascal' }, '');
-    window.addEventListener('popstate', () => {
-      if (scannerModal.classList.contains('active')) {
-        cerrarEscaner();
-        history.pushState({ app: 'tascal' }, '');
-        return;
-      }
-      if (modalManual.classList.contains('active')) {
-        modalManual.classList.remove('active');
-        history.pushState({ app: 'tascal' }, '');
-        return;
-      }
-      if (modalConfirm.classList.contains('active')) {
-        modalConfirm.classList.remove('active');
-        history.pushState({ app: 'tascal' }, '');
-        return;
-      }
-      const ahora = Date.now();
-      if (ahora - ultimoToqueAtras < 2000) {
-        history.back();
-      } else {
-        ultimoToqueAtras = ahora;
-        history.pushState({ app: 'tascal' }, '');
-        mostrarAviso('Toca atrás de nuevo para salir', 2000);
-      }
-    });
-  }
-
-  function getFechaHoy() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }
-
-  function obtenerFechaEfectivaInicial() {
-    const hoyStr = getFechaHoy();
-    if (tasasHistorial[hoyStr]) return hoyStr;
-
-    const d = new Date();
-    const diaSemana = d.getDay();
-    if (diaSemana === 0 || diaSemana === 6) {
-      const diasAAtrazar = diaSemana === 0 ? 2 : 1;
-      d.setDate(d.getDate() - diasAAtrazar);
-      const viernesStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      if (tasasHistorial[viernesStr]) return viernesStr;
-    }
-
-    const fechas = Object.keys(tasasHistorial).sort();
-    return fechas.length > 0 ? fechas.pop() : hoyStr;
-  }
-
-  function formatearFechaHTML(fechaStr) {
-    if (!fechaStr) return '--';
-    const [y, m, d] = fechaStr.split('-');
-    const fechaFmt = `${d}/${m}/${y}`;
-    const hoyStr = getFechaHoy();
-
-    if (fechaStr === hoyStr) {
-      return `<span style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; font-size: 10px; letter-spacing: 0.4px; margin-right: 4px;">HOY</span><span style="color: #e2e8f0; font-weight: 600;">${fechaFmt}</span>`;
-    }
-    return `<span style="color: #cbd5e1; font-weight: 600;">${fechaFmt}</span>`;
-  }
-
-  function fechasOrdenadas() {
-    return Object.keys(tasasHistorial).sort();
-  }
-
-  function actualizarInterfazTasas() {
-    const t = getTasas();
-    elTasaUSD.textContent = t.USD ? formatearNumero(t.USD) : '--';
-    elTasaEUR.textContent = t.EUR ? formatearNumero(t.EUR) : '--';
-    elDateLabel.innerHTML = `Fecha: ${formatearFechaHTML(fechaActual)}`;
-
-    const fechas = fechasOrdenadas();
-    const idx = fechas.indexOf(fechaActual);
-    btnPrev.disabled = idx <= 0;
-    btnNext.disabled = idx === -1 || idx >= fechas.length - 1;
-
-    recalcularPreview();
-    renderizarLista();
-  }
-
-  function navegarFecha(direccion) {
-    const fechas = fechasOrdenadas();
-    if (fechas.length === 0) return;
-    let idx = fechas.indexOf(fechaActual);
-    if (idx === -1) idx = fechas.length - 1;
-    const nuevoIdx = idx + direccion;
-    if (nuevoIdx >= 0 && nuevoIdx < fechas.length) {
-      fechaActual = fechas[nuevoIdx];
-      actualizarInterfazTasas();
-    }
-  }
-
-  // --- CARGA DINÁMICA SEGURA DE TESSERACT (NO BLOQUEA OFFLINE) ---
-  function cargarTesseractDinamico() {
-    return new Promise((resolve) => {
-      if (window.Tesseract) {
-        resolve(window.Tesseract);
-        return;
-      }
-      // Intentar cargar script con un tiempo límite corto (timeout de 3s)
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-      script.async = true;
-      
-      const timer = setTimeout(() => {
-        script.onerror = null;
-        resolve(null); // Si no hay internet, se rechaza silenciosamente sin bloquear
-      }, 3000);
-
-      script.onload = () => {
-        clearTimeout(timer);
-        resolve(window.Tesseract);
-      };
-      script.onerror = () => {
-        clearTimeout(timer);
-        resolve(null);
-      };
-      document.head.appendChild(script);
-    });
-  }
-
-  async function obtenerTasaAPI(silencioso = false) {
-    if (!silencioso) {
-      elTasaUSD.textContent = '...'; 
-      elTasaEUR.textContent = '...';
-    }
-
-    let nuevaTasa = null;
-    try {
-      const res = await fetch('https://bcvhoy.com/api/tasas');
-      if (!res.ok) throw new Error();
-      const d = await res.json();
-      nuevaTasa = { USD: d.oficial, EUR: d.euro };
-    } catch {
-      try {
-        const r2 = await fetch('https://datos.cromstudio.com.ve/tasa');
-        if (!r2.ok) throw new Error();
-        const d2 = await r2.json();
-        nuevaTasa = { USD: d2.tasas.USD, EUR: d2.tasas.EUR };
-      } catch {
-        if (!silencioso) {
-          mostrarAviso('Sin conexión. Usando tasas guardadas.');
-        }
-        if (!fechaActual) fechaActual = obtenerFechaEfectivaInicial();
-        actualizarInterfazTasas();
-        return;
-      }
-    }
-
-    if (nuevaTasa && nuevaTasa.USD > 0) {
-      const hoy = getFechaHoy();
-      const tasaExistenteHoy = tasasHistorial[hoy];
-
-      if (!tasaExistenteHoy) {
-        tasasHistorial[hoy] = nuevaTasa;
-        fechaActual = hoy;
-      } else {
-        if (tasaExistenteHoy.USD !== nuevaTasa.USD) {
-          const d = new Date();
-          d.setDate(d.getDate() + 1);
-          const maniana = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-          tasasHistorial[maniana] = nuevaTasa;
-          fechaActual = maniana;
-          if (!silencioso) mostrarAviso('Tasa adelantada guardada para mañana');
-        } else {
-          fechaActual = hoy;
-          if (!silencioso) mostrarAviso('Tasa ya actualizada al día');
-        }
-      }
-
-      guardarHistorial();
-      actualizarInterfazTasas();
-    }
-  }
-
-  function abrirModalManual() {
-    const tasasActuales = getTasas();
-    $('manual-date').value = fechaActual || getFechaHoy();
-    $('manual-usd').value = tasasActuales.USD > 0 ? tasasActuales.USD : '';
-    $('manual-eur').value = tasasActuales.EUR > 0 ? tasasActuales.EUR : '';
-    seleccionarModoManual('USD');
-    modalManual.classList.add('active');
-    setTimeout(() => $('manual-usd').focus(), 100);
-  }
-
-  function seleccionarModoManual(modo) {
-    modoTasaManual = modo;
-    document.querySelectorAll('.currency-tab').forEach(tab => {
-      tab.classList.toggle('active', tab.dataset.mode === modo);
-    });
-    $('group-usd').style.display = (modo === 'USD' || modo === 'BOTH') ? 'block' : 'none';
-    $('group-eur').style.display = (modo === 'EUR' || modo === 'BOTH') ? 'block' : 'none';
-  }
-
-  document.querySelectorAll('.currency-tab').forEach(tab => {
-    tab.addEventListener('click', () => seleccionarModoManual(tab.dataset.mode));
-  });
-
-  $('btn-cancel-manual').addEventListener('click', () => modalManual.classList.remove('active'));
-
-  $('btn-save-manual').addEventListener('click', () => {
-    const fechaSel = $('manual-date').value;
-    if (!fechaSel) {
-      mostrarAviso('Selecciona una fecha válida');
-      return;
-    }
-
-    const existente = tasasHistorial[fechaSel] || getTasas();
-    let nuevoUSD = existente.USD || 0;
-    let nuevoEUR = existente.EUR || 0;
-
-    if (modoTasaManual === 'USD' || modoTasaManual === 'BOTH') {
-      const valUsd = parseFloat($('manual-usd').value.replace(',', '.'));
-      if (isNaN(valUsd) || valUsd <= 0) {
-        mostrarAviso('Ingresa un monto válido para el Dólar');
-        return;
-      }
-      nuevoUSD = valUsd;
-    }
-
-    if (modoTasaManual === 'EUR' || modoTasaManual === 'BOTH') {
-      const valEur = parseFloat($('manual-eur').value.replace(',', '.'));
-      if (isNaN(valEur) || valEur <= 0) {
-        mostrarAviso('Ingresa un monto válido para el Euro');
-        return;
-      }
-      nuevoEUR = valEur;
-    }
-
-    tasasHistorial[fechaSel] = { USD: nuevoUSD, EUR: nuevoEUR };
-    guardarHistorial();
-    fechaActual = fechaSel;
-    actualizarInterfazTasas();
-    modalManual.classList.remove('active');
-    mostrarAviso('✅ Tasa guardada correctamente');
-  });
-
-  async function prepararWorkerOCR() {
-    if (ocrWorker) return ocrWorker;
-    const libTesseract = await cargarTesseractDinamico();
-    if (!libTesseract) return null;
-
-    try {
-      ocrWorker = await libTesseract.createWorker('eng');
-      await ocrWorker.setParameters({
-        tessedit_char_whitelist: '0123456789.,',
-        tessedit_pageseg_mode: '7' 
-      });
-      return ocrWorker;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function abrirEscaner() {
-    ultimoNumeroDetectado = null;
-    liveNumberEl.textContent = '--';
-    btnConfirmScan.disabled = true;
-    scanStatusEl.textContent = 'Iniciando cámara...';
-    pausedForStability = false;
-    zoomWrapper.style.display = 'none';
-    scannerModal.classList.add('active');
-
-    try {
-      const workerCheck = await prepararWorkerOCR();
-      if (!workerCheck) {
-        scanStatusEl.textContent = '❌ El escáner requiere internet la 1ª vez.';
-        return;
-      }
-
-      videoStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
-      });
-      videoEl.srcObject = videoStream;
-      await videoEl.play();
-
-      const track = videoStream.getVideoTracks()[0];
-      trackCapabilities = track.getCapabilities ? track.getCapabilities() : {};
-      if (trackCapabilities.zoom) {
-        zoomSlider.min = trackCapabilities.zoom.min;
-        zoomSlider.max = trackCapabilities.zoom.max;
-        zoomSlider.step = trackCapabilities.zoom.step || 0.1;
-        zoomSlider.value = track.getSettings().zoom || trackCapabilities.zoom.min;
-        zoomWrapper.style.display = 'flex';
-      }
-
-      scanStatusEl.textContent = 'Encuadra el precio en el recuadro...';
-      scanInterval = setInterval(capturarYAnalizarRecuadro, 1500);
-    } catch (err) {
-      console.error(err);
-      scanStatusEl.textContent = '❌ Error al acceder a la cámara.';
-    }
-  }
-
-  function cerrarEscaner() {
-    clearInterval(scanInterval);
-    scanInterval = null;
-    if (videoStream) {
-      videoStream.getTracks().forEach(track => track.stop());
-      videoStream = null;
-    }
-    scannerModal.classList.remove('active');
-  }
-
-  async function capturarYAnalizarRecuadro() {
-    if (isProcessingFrame || pausedForStability || !videoStream || videoEl.readyState < 2 || !ocrWorker) return;
-    isProcessingFrame = true;
-
-    try {
-      const vw = videoEl.videoWidth;
-      const vh = videoEl.videoHeight;
-      if (!vw || !vh) { isProcessingFrame = false; return; }
-
-      const boxRect = scanBoxEl.getBoundingClientRect();
-      const vidRect = videoEl.getBoundingClientRect();
-
-      const scaleX = vw / vidRect.width;
-      const scaleY = vh / vidRect.height;
-
-      const cropX = Math.max(0, (boxRect.left - vidRect.left) * scaleX);
-      const cropY = Math.max(0, (boxRect.top - vidRect.top) * scaleY);
-      const cropW = Math.min(vw - cropX, boxRect.width * scaleX);
-      const cropH = Math.min(vh - cropY, boxRect.height * scaleY);
-
-      const canvas = document.createElement('canvas');
-      canvas.width = 500;
-      canvas.height = Math.round(500 * (cropH / cropW));
-      const ctx = canvas.getContext('2d');
-
-      ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
-
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-      let sumaBrillo = 0;
-
-      for (let i = 0; i < data.length; i += 4) {
-        sumaBrillo += (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-      }
-      const promedioBrillo = sumaBrillo / (data.length / 4);
-      const esFondoOscuro = promedioBrillo < 115;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        let val = lum < promedioBrillo * 0.88 ? 0 : 255;
-        if (esFondoOscuro) val = 255 - val;
-        data[i] = val; data[i + 1] = val; data[i + 2] = val;
-      }
-      ctx.putImageData(imgData, 0, 0);
-
-      const { data: { text } } = await ocrWorker.recognize(canvas);
-      const limpioTexto = text.trim();
-
-      const matches = limpioTexto.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?/g);
-      if (matches && matches.length > 0) {
-        matches.sort((a, b) => b.length - a.length);
-        let raw = matches[0];
-
-        if (raw.includes(',') && raw.includes('.')) {
-          if (raw.indexOf(',') > raw.indexOf('.')) {
-            raw = raw.replace(/\./g, '').replace(',', '.');
-          } else {
-            raw = raw.replace(/,/g, '');
-          }
-        } else if (raw.includes(',')) {
-          const partes = raw.split(',');
-          if (partes[partes.length - 1].length <= 2) raw = raw.replace(',', '.');
-          else raw = raw.replace(/,/g, '');
-        } else if (raw.includes('.')) {
-          const partes = raw.split('.');
-          if (partes.length > 2 || partes[partes.length - 1].length === 3) {
-            raw = raw.replace(/\./g, '');
-          }
-        }
-
-        const numeroFinal = parseFloat(raw);
-        if (!isNaN(numeroFinal) && numeroFinal > 0) {
-          ultimoNumeroDetectado = numeroFinal;
-          liveNumberEl.textContent = formatearNumero(numeroFinal);
-          scanStatusEl.textContent = '✨ ¡Capturado! Toca Usar o espera...';
-          btnConfirmScan.disabled = false;
-
-          pausedForStability = true;
-          setTimeout(() => {
-            if (scannerModal.classList.contains('active')) {
-              pausedForStability = false;
-              scanStatusEl.textContent = 'Buscando otro precio...';
-            }
-          }, 1500);
-        }
-      }
-    } catch (e) {} finally {
-      isProcessingFrame = false;
-    }
-  }
-
-  zoomSlider.addEventListener('input', e => {
-    if (videoStream && trackCapabilities && trackCapabilities.zoom) {
-      const track = videoStream.getVideoTracks()[0];
-      track.applyConstraints({ advanced: [{ zoom: parseFloat(e.target.value) }] }).catch(() => {});
-    }
-  });
-
-  function convertir(monto, origen, destino) {
-    const t = getTasas();
-    if (origen === destino) return monto;
-    if (origen === 'VES') return destino === 'USD' ? monto / t.USD : monto / t.EUR;
-    if (destino === 'VES') return origen === 'USD' ? monto * t.USD : monto * t.EUR;
-    const enVES = origen === 'USD' ? monto * t.USD : monto * t.EUR;
-    return destino === 'USD' ? enVES / t.USD : enVES / t.EUR;
-  }
-
-  function recalcularPreview() {
-    const precio = parseFloat(inputPrecio.value) || 0;
-    const mult = parseFloat(inputMult.value) || 1;
-    const t = getTasas();
-    if (precio <= 0 || t.USD === 0) { elResultado.textContent = '0,00'; return; }
-    const r = convertir(precio * mult, selOrigen.value, selDestino.value);
-    elResultado.textContent = `${formatearNumero(r)} ${simbolo(selDestino.value)}`;
-  }
-
-  function renderizarLista() {
-    const destino = selDestino.value; const sim = simbolo(destino);
-    elLista.innerHTML = ''; let total = 0;
-
-    items.forEach((item, i) => {
-      const enOrigen = item.precio * item.mult;
-      const convertido = convertir(enOrigen, item.origen, destino);
-      total += convertido;
-
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <div class="info">
-          <div><strong>${item.mult}</strong> × ${simbolo(item.origen)}${formatearNumero(item.precio)}</div>
-          <div class="detalle">${simbolo(item.origen)}${formatearNumero(enOrigen)} → ${sim}${formatearNumero(convertido)}</div>
-        </div>
-        <div class="valor">${sim}${formatearNumero(convertido)}</div>
-        <button class="del" data-i="${i}">×</button>
-      `;
-      elLista.appendChild(li);
-    });
-
-    elLista.querySelectorAll('.del').forEach(b => {
-      b.addEventListener('click', () => {
-        items.splice(+b.dataset.i, 1);
-        guardarItems();
-        renderizarLista();
-      });
-    });
-
-    if (items.length === 0) {
-      elEmpty.style.display = 'block'; elTotal.textContent = `0,00 ${sim}`;
-    } else {
-      elEmpty.style.display = 'none'; elTotal.textContent = `${formatearNumero(total)} ${sim}`;
-    }
-  }
-
-  function agregarItem() {
-    const precio = parseFloat(inputPrecio.value);
-    const mult = parseFloat(inputMult.value) || 1;
-    const t = getTasas();
+// ==================== MODALES PERSONALIZADOS (REEMPLAZO DE ALERT/CONFIRM) ====================
+function showAppAlert(message, title = "Aviso") {
+  return new Promise((resolve) => {
+    document.getElementById('customAlertTitle').textContent = title;
+    document.getElementById('customAlertText').textContent = message;
+    const modal = document.getElementById('customAlertModal');
+    modal.classList.add('open');
     
-    if (!precio || precio <= 0) { 
-      mostrarAviso('⚠️ Ingresa un precio válido');
-      inputPrecio.focus();
-      return; 
-    }
-    if (t.USD === 0 && (selOrigen.value === 'USD' || selDestino.value === 'USD')) { 
-      mostrarAviso('⚠️ Primero actualiza o ingresa la tasa USD');
-      return; 
-    }
-    if (t.EUR === 0 && (selOrigen.value === 'EUR' || selDestino.value === 'EUR')) { 
-      mostrarAviso('⚠️ Primero actualiza o ingresa la tasa EUR');
-      return; 
-    }
+    const okBtn = document.getElementById('customAlertOkBtn');
+    const handler = () => {
+      modal.classList.remove('open');
+      okBtn.removeEventListener('click', handler);
+      resolve(true);
+    };
+    okBtn.addEventListener('click', handler);
+  });
+}
+
+function showAppConfirm(message) {
+  return new Promise((resolve) => {
+    document.getElementById('customConfirmText').textContent = message;
+    const modal = document.getElementById('customConfirmModal');
+    modal.classList.add('open');
     
-    items.push({ precio, mult, origen: selOrigen.value });
-    guardarItems();
-    setTimeout(() => { document.querySelector('.scroll-area').scrollTop = document.querySelector('.scroll-area').scrollHeight; }, 50);
+    const yesBtn = document.getElementById('customConfirmYesBtn');
+    const noBtn = document.getElementById('customConfirmNoBtn');
+    
+    const cleanup = (result) => {
+      modal.classList.remove('open');
+      yesBtn.removeEventListener('click', yesHandler);
+      noBtn.removeEventListener('click', noHandler);
+      resolve(result);
+    };
+    
+    const yesHandler = () => cleanup(true);
+    const noHandler = () => cleanup(false);
+    
+    yesBtn.addEventListener('click', yesHandler);
+    noBtn.addEventListener('click', noHandler);
+  });
+}
 
-    inputPrecio.value = ''; inputMult.value = '1';
-    elResultado.textContent = '0,00';
-    renderizarLista();
-    inputPrecio.focus();
+// ==================== ESTADO ====================
+const STORAGE_KEY = 'miHorario_v1';
+let state = {
+  globalPriority: 'trabajo',
+  patterns: [],
+  subjects: [],
+  jobHourTemplates: {},
+  manualDays: {},
+  blocks: [],
+  days: {}
+};
+let currentDate = '';
+let modalTargetISO = '';
+let calYear, calMonth;
+let manYear, manMonth;
+let weekStartDate = null;
+let isLocked = true;
+let currentWorkFilter = '';
+
+const DEFAULT_JOB_COLORS = ['#e65c5c', '#5ce6a1', '#e6c25c', '#5cc2e6', '#d95ce6'];
+const DEFAULT_SUB_COLORS = ['#354a5c', '#4a355c', '#355c4a', '#5c4a35', '#5c354a'];
+
+function getJobColor(index) {
+  if (state.patterns && state.patterns[index] && state.patterns[index].color) {
+    return state.patterns[index].color;
   }
+  return DEFAULT_JOB_COLORS[index % DEFAULT_JOB_COLORS.length];
+}
 
-  $('btn-actualizar').addEventListener('click', () => obtenerTasaAPI(false));
-  btnPrev.addEventListener('click', () => navegarFecha(-1));
-  btnNext.addEventListener('click', () => navegarFecha(1));
-  $('btn-manual').addEventListener('click', abrirModalManual);
+function getSubjectColor(subName) {
+  if (state.subjects) {
+    const found = state.subjects.find(s => s.name === subName);
+    if (found && found.color) return found.color;
+  }
+  return '#354a5c';
+}
 
-  inputPrecio.addEventListener('input', recalcularPreview);
-  inputMult.addEventListener('input', recalcularPreview);
-  selOrigen.addEventListener('change', recalcularPreview);
-  selDestino.addEventListener('change', () => { recalcularPreview(); renderizarLista(); });
-  $('btn-agregar').addEventListener('click', agregarItem);
+function formatHour12(timeStr) {
+  if (!timeStr) return '';
+  const parts = timeStr.split(':');
+  let h = parseInt(parts[0], 10);
+  const m = parts[1] || '00';
+  if (isNaN(h)) return timeStr;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  h = h ? h : 12;
+  return `${h}:${m} ${ampm}`;
+}
 
-  $('btn-foto').addEventListener('click', abrirEscaner);
-  $('btn-cancel-scan').addEventListener('click', cerrarEscaner);
-  btnConfirmScan.addEventListener('click', () => {
-    if (ultimoNumeroDetectado !== null) {
-      inputPrecio.value = ultimoNumeroDetectado.toFixed(2);
-      recalcularPreview();
+function defaultBlocks() {
+  const arr = [];
+  for (let h = 0; h < 24; h++) {
+    arr.push({
+      id: 'b' + h,
+      ini: String(h).padStart(2,'0') + ':00',
+      fin: String((h+1) % 24).padStart(2,'0') + ':00',
+      label: ''
+    });
+  }
+  return arr;
+}
+
+// ==================== PERSISTENCIA ====================
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e) { console.warn('No se pudo guardar', e); }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      state = Object.assign(state, JSON.parse(raw));
+      if (state.pattern && (!state.patterns || state.patterns.length === 0)) {
+        state.patterns = [{
+          name: 'Trabajo',
+          color: DEFAULT_JOB_COLORS[0],
+          enabled: state.pattern.enabled || false,
+          startDate: state.pattern.startDate || '2026-10-11',
+          endDate: state.pattern.endDate || '',
+          workDays: state.pattern.workDays || 1,
+          restDays: state.pattern.restDays || 3
+        }];
+      }
     }
-    cerrarEscaner();
-  });
-
-  $('btn-limpiar').addEventListener('click', () => {
-    if (items.length === 0) {
-      mostrarAviso('La lista ya está vacía');
-      return;
+    if (!state.patterns || state.patterns.length === 0) {
+      state.patterns = [{
+        name: 'Trabajo',
+        color: DEFAULT_JOB_COLORS[0],
+        enabled: false,
+        startDate: '2026-10-11',
+        endDate: '',
+        workDays: 1,
+        restDays: 3
+      }];
     }
-    modalConfirm.classList.add('active');
-  });
+    if (!state.subjects) state.subjects = [];
+    if (!state.jobHourTemplates) state.jobHourTemplates = {};
+    if (!state.manualDays) state.manualDays = {};
+    if (!state.blocks || state.blocks.length === 0) state.blocks = defaultBlocks();
+  } catch(e) {
+    state.blocks = defaultBlocks();
+    state.patterns = [];
+    state.subjects = [];
+    state.jobHourTemplates = {};
+    state.manualDays = {};
+    console.warn('No se pudo cargar', e);
+  }
+}
 
-  $('btn-cancel-clear').addEventListener('click', () => modalConfirm.classList.remove('active'));
-  $('btn-confirm-clear').addEventListener('click', () => {
-    items = [];
-    guardarItems();
-    renderizarLista();
-    modalConfirm.classList.remove('active');
-    mostrarAviso('🗑️ Lista borrada');
-  });
-
-  // --- ARRANQUE 100% OFFLINE-FIRST ---
-  iniciarProteccionAtras();
-  cargarDatosGuardados();
-
-  if (Object.keys(tasasHistorial).length > 0) {
-    fechaActual = obtenerFechaEfectivaInicial();
-    actualizarInterfazTasas();
+// ==================== BORRADO TOTAL SECRETO ====================
+async function triggerSecretReset() {
+  const confirmacion1 = await showAppConfirm("⚠️ ¿Estás seguro de que deseas borrar ABSOLUTAMENTE TODO?\n\nSe eliminarán todos tus horarios, bloques, notas y configuraciones guardadas.");
+  if (!confirmacion1) return;
+  
+  const confirmacion2 = prompt("Para confirmar el borrado total, escribe la palabra: BORRAR");
+  if (confirmacion2 === "BORRAR" || confirmacion2 === "borrar") {
+    localStorage.removeItem(STORAGE_KEY);
+    await showAppAlert("Sistema restablecido con éxito. La aplicación se recargará.");
+    location.reload();
   } else {
-    fechaActual = getFechaHoy();
-    elDateLabel.innerHTML = `Fecha: ${formatearFechaHTML(fechaActual)}`;
-    renderizarLista();
+    await showAppAlert("Operación cancelada. La palabra de confirmación no coincide.");
+  }
+}
+
+// ==================== GESTIÓN INTELIGENTE DEL BOTÓN ATRÁS (HISTORIAL) ====================
+// Creamos una entrada fantasma al inicio para asegurar que siempre haya historial que retener
+if (!window.history.state || window.history.state.init !== true) {
+  window.history.replaceState({ view: 'calendar', init: true }, '', '');
+  window.history.pushState({ view: 'calendar', init: true }, '', '');
+}
+
+window.addEventListener('popstate', async (e) => {
+  // 1. Si hay algún modal abierto, lo cerramos primero con "Atrás"
+  const openModals = document.querySelectorAll('.modal.open');
+  if (openModals.length > 0) {
+    openModals.forEach(m => m.classList.remove('open'));
+    window.history.pushState({ view: getCurrentActiveViewName(), init: true }, '', '');
+    return;
   }
 
-  // Petición silenciosa de fondo (si no hay red, no afecta en nada y abre al instante)
-  obtenerTasaAPI(true);
+  const currentView = getCurrentActiveViewName();
+
+  if (currentView === 'calendar') {
+    // Si estamos en Calendario, mostramos la alerta de salida
+    const salir = await showAppConfirm("¿Deseas salir de la aplicación?");
+    if (salir) {
+      // Forzar cierre real de la app o retroceso definitivo en contenedores PWA
+      try {
+        window.close();
+      } catch(err) {}
+      window.history.go(-1);
+    } else {
+      // Si cancela, volvemos a empujar el estado para mantener la app abierta
+      window.history.pushState({ view: 'calendar', init: true }, '', '');
+    }
+  } else {
+    // Si estamos en Semana o Día, regresamos a Calendario limpiamente
+    switchToCalendarView(false);
+  }
+});
+
+function getCurrentActiveViewName() {
+  if (document.getElementById('dayView').classList.contains('active-view')) return 'day';
+  if (document.getElementById('weekView').classList.contains('active-view')) return 'week';
+  return 'calendar';
+}
+
+function switchToCalendarView(pushHistory = true) {
+  document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+  document.getElementById('calendarView').classList.add('active-view');
+  document.getElementById('tabCalendar').classList.add('active');
+  document.getElementById('tabWeek').classList.remove('active');
+  document.getElementById('tabDay').classList.remove('active');
+  document.getElementById('openBlocks').style.display = 'none';
+  renderCalendar();
+
+  if (pushHistory) {
+    window.history.pushState({ view: 'calendar', init: true }, '', '');
+  }
+}
+
+function switchToWeekView(pushHistory = true) {
+  document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+  document.getElementById('weekView').classList.add('active-view');
+  document.getElementById('tabCalendar').classList.remove('active');
+  document.getElementById('tabDay').classList.remove('active');
+  document.getElementById('tabWeek').classList.add('active');
+  document.getElementById('openBlocks').style.display = 'inline-block';
+  renderWeek();
+
+  if (pushHistory) {
+    window.history.pushState({ view: 'week', init: true }, '', '');
+  }
+}
+
+function switchToDayView(iso, pushHistory = true) {
+  currentDate = iso;
+  document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
+  document.getElementById('dayView').classList.add('active-view');
+  document.getElementById('tabCalendar').classList.remove('active');
+  document.getElementById('tabWeek').classList.remove('active');
+  document.getElementById('tabDay').classList.add('active');
+  document.getElementById('openBlocks').style.display = 'inline-block';
+  populateDaySelects();
+  renderDay();
+
+  if (pushHistory) {
+    window.history.pushState({ view: 'day', date: iso, init: true }, '', '');
+  }
+}
+
+// ==================== UTILIDADES ====================
+function toISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function parseISO(iso) { const [y,m,d] = iso.split('-').map(Number); return new Date(y, m-1, d); }
+function formatDate(iso) {
+  const d = parseISO(iso);
+  const dias = ['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+}
+function getDay(iso) {
+  if (!state.days[iso]) state.days[iso] = { trabajo: {}, estudio: {}, priority: '', evaluations: [], notes: [] };
+  if (!state.days[iso].evaluations) state.days[iso].evaluations = [];
+  if (state.days[iso].notes === undefined) {
+    if (state.days[iso].note && typeof state.days[iso].note === 'string' && state.days[iso].note.trim()) {
+      state.days[iso].notes = [state.days[iso].note.trim()];
+    } else {
+      state.days[iso].notes = [];
+    }
+  }
+  return state.days[iso];
+}
+
+function getAvailableSubjects() {
+  const subjects = new Set();
+  if (state.subjects) {
+    state.subjects.forEach(s => { if (s.name) subjects.add(s.name); });
+  }
+  for (const iso in state.days) {
+    const day = state.days[iso];
+    if (day && day.estudio) {
+      Object.values(day.estudio).forEach(val => {
+        if (val && val.trim()) subjects.add(val.trim());
+      });
+    }
+  }
+  return Array.from(subjects);
+}
+
+function getActiveWorkLabelsWithColors(iso) {
+  const result = []; 
+  const targetDate = parseISO(iso);
+  
+  if (state.patterns && state.patterns.length > 0) {
+    state.patterns.forEach((pat, idx) => {
+      if (!pat.enabled) return;
+      const startD = parseISO(pat.startDate);
+      if (targetDate < startD) return;
+      if (pat.endDate) {
+        const endD = parseISO(pat.endDate);
+        if (targetDate > endD) return;
+      }
+      const diffDays = Math.round((targetDate - startD) / 86400000);
+      const cycle = (+pat.workDays || 1) + (+pat.restDays || 1);
+      if (cycle <= 0) return;
+      if ((diffDays % cycle) < (+pat.workDays || 1)) {
+        result.push({ name: pat.name || 'Trabajo', color: pat.color || getJobColor(idx) });
+      }
+    });
+  }
+
+  if (state.manualDays && state.manualDays[iso]) {
+    state.manualDays[iso].forEach(jobName => {
+      let matchedColor = '#e65c5c';
+      if (state.patterns) {
+        const found = state.patterns.find(p => p.name === jobName);
+        if (found) matchedColor = found.color;
+      }
+      if (!result.some(r => r.name === jobName)) {
+        result.push({ name: jobName, color: matchedColor });
+      }
+    });
+  }
+
+  return result;
+}
+
+function isWorkDay(iso) {
+  return getActiveWorkLabelsWithColors(iso).length > 0;
+}
+
+function effectivePriority(iso) {
+  const day = state.days[iso];
+  if (day && day.priority) return day.priority;
+  return state.globalPriority;
+}
+function getMondayOf(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+// ==================== MODO BLOQUEO ====================
+const lockBtn = document.getElementById('lockBtn');
+lockBtn.onclick = () => {
+  isLocked = !isLocked;
+  if (isLocked) {
+    lockBtn.textContent = '\ud83d\udd12 Bloqueado (Solo ver)';
+    lockBtn.classList.add('lock-active');
+    document.getElementById('editHint').textContent = 'Modo bloqueo activo: no se puede editar ni pintar.';
+    document.getElementById('dayToolsContainer').style.display = 'none';
+  } else {
+    lockBtn.textContent = '\ud83d\udd13 Modo Edici\u00f3n';
+    lockBtn.classList.remove('lock-active');
+    document.getElementById('editHint').textContent = 'Selecciona trabajo o materia y arrastra para pintar.';
+    document.getElementById('dayToolsContainer').style.display = 'flex';
+  }
+};
+
+// ==================== EXPORTAR IMAGEN ====================
+function exportToImage(elementId, filename) {
+  const el = document.getElementById(elementId);
+  html2canvas(el, { scale: 3, backgroundColor: '#1e1e2e' }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = filename + '_' + toISO(new Date()) + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+}
+document.getElementById('exportCalImg').onclick = () => exportToImage('calendarView', 'calendario_horario');
+document.getElementById('exportWeekImg').onclick = () => exportToImage('weekView', 'semana_horario');
+
+// ==================== CALENDARIO ====================
+function populateCalFilterSelect() {
+  const select = document.getElementById('calFilterWork');
+  if (!select) return;
+  const currentVal = select.value;
+  select.innerHTML = '<option value="">Mostrar: Todos</option>';
+  
+  const jobNamesSet = new Set();
+  if (state.patterns) {
+    state.patterns.forEach(p => { if (p.name) jobNamesSet.add(p.name); });
+  }
+  if (state.manualDays) {
+    for (const iso in state.manualDays) {
+      state.manualDays[iso].forEach(name => jobNamesSet.add(name));
+    }
+  }
+
+  jobNamesSet.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+
+  select.value = currentVal;
+  currentWorkFilter = select.value;
+}
+
+document.getElementById('calFilterWork').onchange = (e) => {
+  currentWorkFilter = e.target.value;
+  renderCalendar();
+};
+
+function renderCalendar() {
+  populateCalFilterSelect();
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('monthLabel').textContent = `${meses[calMonth]} ${calYear}`;
+
+  ['Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b','Dom'].forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'calDayName'; el.textContent = n;
+    grid.appendChild(el);
+  });
+
+  const first = new Date(calYear, calMonth, 1);
+  let startCol = first.getDay();
+  startCol = (startCol === 0) ? 6 : startCol - 1;
+
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const prevMonthDays = new Date(calYear, calMonth, 0).getDate();
+
+  for (let i = startCol - 1; i >= 0; i--) grid.appendChild(makeCalDay(calYear, calMonth - 1, prevMonthDays - i, true));
+  for (let d = 1; d <= daysInMonth; d++) grid.appendChild(makeCalDay(calYear, calMonth, d, false));
+  const remaining = (7 - ((startCol + daysInMonth) % 7)) % 7;
+  for (let d = 1; d <= remaining; d++) grid.appendChild(makeCalDay(calYear, calMonth + 1, d, true));
+}
+
+function makeCalDay(y, m, d, otherMonth) {
+  const date = new Date(y, m, d);
+  const iso = toISO(date);
+  const el = document.createElement('div');
+  el.className = 'calDay';
+  if (otherMonth) el.classList.add('otherMonth');
+  if (iso === toISO(new Date())) el.classList.add('today');
+
+  let activeWorks = getActiveWorkLabelsWithColors(iso);
+  
+  const day = state.days[iso];
+  if (day && day.trabajo) {
+    Object.values(day.trabajo).forEach(wName => {
+      if (wName && !activeWorks.some(aw => aw.name === wName)) {
+        let matchedColor = '#e65c5c';
+        if (state.patterns) {
+          const found = state.patterns.find(p => p.name === wName);
+          if (found) matchedColor = found.color;
+        }
+        activeWorks.push({ name: wName, color: matchedColor });
+      }
+    });
+  }
+
+  if (currentWorkFilter) {
+    activeWorks = activeWorks.filter(w => w.name === currentWorkFilter);
+  }
+
+  if (activeWorks.length > 0) {
+    el.classList.add('workday');
+  }
+
+  const num = document.createElement('div');
+  num.className = 'dayNum'; num.textContent = d;
+  el.appendChild(num);
+
+  const uniqueMinis = [];
+  const seenNames = new Set();
+  activeWorks.forEach(w => {
+    if (!seenNames.has(w.name)) {
+      seenNames.add(w.name);
+      uniqueMinis.push(w);
+    }
+  });
+
+  uniqueMinis.forEach(w => {
+    const s = document.createElement('div');
+    s.className = 'mini';
+    s.style.backgroundColor = w.color;
+    s.style.color = '#fff';
+    s.textContent = 'T: ' + w.name;
+    el.appendChild(s);
+  });
+
+  if (day) {
+    const studySet = new Set(Object.values(day.estudio));
+    studySet.forEach(subName => {
+      const s = document.createElement('div');
+      s.className = 'mini est'; 
+      s.style.backgroundColor = getSubjectColor(subName);
+      s.textContent = 'E: ' + subName;
+      el.appendChild(s);
+    });
+    if (day.evaluations && day.evaluations.length > 0) {
+      day.evaluations.forEach(ev => {
+        const evEl = document.createElement('div');
+        evEl.className = 'mini eval';
+        evEl.textContent = `[Eval] ${ev.subject}: ${ev.title}`;
+        el.appendChild(evEl);
+      });
+    }
+    if (day.notes && day.notes.length > 0) {
+      day.notes.forEach(noteText => {
+        const noteEl = document.createElement('div');
+        noteEl.className = 'mini note';
+        noteEl.textContent = `Nota: ${noteText}`;
+        el.appendChild(noteEl);
+      });
+    }
+  }
+
+  el.addEventListener('click', () => switchToDayView(iso));
+  return el;
+}
+
+// ==================== GESTOS TÁCTILES (SWIPE) EN CALENDARIO ====================
+let touchStartX = 0;
+let touchEndX = 0;
+const calViewElement = document.getElementById('calendarView');
+
+calViewElement.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].screenX;
+}, {passive: true});
+
+calViewElement.addEventListener('touchend', e => {
+  touchEndX = e.changedTouches[0].screenX;
+  handleCalendarSwipe();
+}, {passive: true});
+
+function handleCalendarSwipe() {
+  const swipeThreshold = 50;
+  if (touchEndX < touchStartX - swipeThreshold) {
+    document.getElementById('nextMonth').click();
+  }
+  if (touchEndX > touchStartX + swipeThreshold) {
+    document.getElementById('prevMonth').click();
+  }
+}
+
+// ==================== VISTA DÍA ====================
+function populateDaySelects() {
+  const workSelect = document.getElementById('dayWorkSelect');
+  if (workSelect) {
+    const currentVal = workSelect.value;
+    workSelect.innerHTML = '';
+    const names = [];
+    if (state.patterns && state.patterns.length > 0) {
+      state.patterns.forEach(p => { if (p.name) names.push(p.name); });
+    }
+    if (names.length === 0) names.push('Trabajo');
+    names.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n;
+      opt.textContent = n;
+      workSelect.appendChild(opt);
+    });
+    if (currentVal && names.includes(currentVal)) {
+      workSelect.value = currentVal;
+    } else {
+      const activeToday = getActiveWorkLabelsWithColors(currentDate);
+      if (activeToday.length > 0 && names.includes(activeToday[0].name)) {
+        workSelect.value = activeToday[0].name;
+      }
+    }
+  }
+
+  const subSelect = document.getElementById('daySubjectSelect');
+  if (subSelect) {
+    const currentSub = subSelect.value;
+    subSelect.innerHTML = '';
+    const subs = getAvailableSubjects();
+    if (subs.length === 0) {
+      subSelect.innerHTML = '<option value="Estudio">Estudio (Por defecto)</option>';
+    } else {
+      subs.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        subSelect.appendChild(opt);
+      });
+    }
+    if (currentSub && subs.includes(currentSub)) {
+      subSelect.value = currentSub;
+    }
+  }
+}
+
+function renderDay() {
+  document.getElementById('dayTitle').textContent = formatDate(currentDate);
+  const day = getDay(currentDate);
+  document.getElementById('dayPriority').value = day.priority || state.globalPriority;
+
+  const cols = document.getElementById('cols');
+  cols.innerHTML = '';
+
+  cols.appendChild(document.createElement('div'));
+  const hT = document.createElement('div'); hT.className = 'colHead trabajo'; hT.textContent = 'TRABAJO'; cols.appendChild(hT);
+  const hE = document.createElement('div'); hE.className = 'colHead estudio'; hE.textContent = 'ESTUDIO'; cols.appendChild(hE);
+  const hR = document.createElement('div'); hR.className = 'colHead resultado'; hR.textContent = 'RESULTADO'; cols.appendChild(hR);
+
+  const prio = effectivePriority(currentDate);
+  const blocks = state.blocks || defaultBlocks();
+
+  blocks.forEach((blk, idx) => {
+    const hl = document.createElement('div');
+    hl.className = 'hourLabel';
+    hl.textContent = `${formatHour12(blk.ini)} a ${formatHour12(blk.fin)}`;
+    cols.appendChild(hl);
+
+    const ct = document.createElement('div');
+    ct.className = 'cell'; ct.dataset.col = 'trabajo'; ct.dataset.h = idx;
+    if (day.trabajo[idx]) { 
+      ct.classList.add('trabajo'); 
+      ct.textContent = day.trabajo[idx]; 
+    }
+    cols.appendChild(ct);
+
+    const ce = document.createElement('div');
+    ce.className = 'cell'; ce.dataset.col = 'estudio'; ce.dataset.h = idx;
+    if (day.estudio[idx]) { 
+      ce.className = 'cell estudio';
+      ce.style.backgroundColor = getSubjectColor(day.estudio[idx]);
+      ce.textContent = day.estudio[idx]; 
+    } else {
+      ce.className = 'cell';
+      ce.style.backgroundColor = '';
+    }
+    cols.appendChild(ce);
+
+    const cr = document.createElement('div');
+    cr.className = 'cell resultado';
+    const t = day.trabajo[idx], e = day.estudio[idx];
+    if (t && e) {
+      cr.classList.add('conflict');
+      if (prio === 'trabajo') {
+        cr.classList.add('conflict-t');
+        cr.textContent = t;
+        cr.title = 'Conflicto (Gana Trabajo): ' + t + ' | Desplazado: ' + e;
+      } else {
+        cr.classList.add('conflict-e');
+        cr.style.backgroundColor = getSubjectColor(e);
+        cr.textContent = e;
+        cr.title = 'Conflicto (Gana Estudio): ' + e + ' | Desplazado: ' + t;
+      }
+    } else if (t) { cr.classList.add('win-t'); cr.textContent = t; }
+    else if (e) { 
+      cr.classList.add('win-e'); 
+      cr.style.backgroundColor = getSubjectColor(e);
+      cr.textContent = e; 
+    }
+    cols.appendChild(cr);
+  });
+}
+
+// ==================== CONFIGURAR MATERIAS (ESTUDIO) ====================
+const subjectsModal = document.getElementById('subjectsModal');
+let draftSubjects = [];
+
+function renderSubjectsEditor() {
+  const container = document.getElementById('subjectsListContainer');
+  container.innerHTML = '';
+  
+  if (!draftSubjects || draftSubjects.length === 0) {
+    container.innerHTML = '<div style="font-size:12px; color:#888; text-align:center; padding:10px;">No hay materias configuradas aún.</div>';
+    return;
+  }
+
+  draftSubjects.forEach((sub, i) => {
+    const item = document.createElement('div');
+    item.className = 'subjectItem';
+    const assignedColor = sub.color || DEFAULT_SUB_COLORS[i % DEFAULT_SUB_COLORS.length];
+    item.innerHTML = `
+      <button class="delSub" type="button" onclick="removeDraftSubject(${i})">Eliminar</button>
+      <label>Nombre de la materia:</label>
+      <input type="text" class="subName" value="${sub.name || ''}" placeholder="Ej: Matemáticas">
+      <label>Color representativo:</label>
+      <input type="color" class="subColor" value="${assignedColor}" style="width: 100%; height: 32px; background: #3a3a52; cursor: pointer;">
+    `;
+    container.appendChild(item);
+  });
+}
+
+window.removeDraftSubject = async function(index) {
+  const subName = draftSubjects[index] ? draftSubjects[index].name : '';
+  const confirmar = await showAppConfirm(`¿Estás seguro de eliminar la materia "${subName}"?\n\nNota: Si ya estaba pintada en algunos días, se limpiará su etiqueta.`);
+  if (!confirmar) return;
+
+  draftSubjects.splice(index, 1);
+  renderSubjectsEditor();
+};
+
+document.getElementById('openSubjects').onclick = () => {
+  draftSubjects = JSON.parse(JSON.stringify(state.subjects || []));
+  renderSubjectsEditor();
+  subjectsModal.classList.add('open');
+};
+
+document.getElementById('subAddBtn').onclick = async () => {
+  if (draftSubjects.length >= 15) { await showAppAlert('Máximo 15 materias.'); return; }
+  const newIdx = draftSubjects.length;
+  draftSubjects.push({ 
+    name: 'Materia ' + (newIdx + 1), 
+    color: DEFAULT_SUB_COLORS[newIdx % DEFAULT_SUB_COLORS.length]
+  });
+  renderSubjectsEditor();
+};
+
+document.getElementById('subCancel').onclick = () => subjectsModal.classList.remove('open');
+
+document.getElementById('subSave').onclick = async () => {
+  const items = document.querySelectorAll('.subjectItem');
+  const newSubjects = [];
+  const currentNames = new Set();
+
+  let hasError = false;
+  items.forEach((item, idx) => {
+    const nameInput = item.querySelector('.subName');
+    const name = nameInput.value.trim();
+    const color = item.querySelector('.subColor').value || DEFAULT_SUB_COLORS[idx % DEFAULT_SUB_COLORS.length];
+    
+    if (!name) {
+      hasError = true;
+      return;
+    }
+    newSubjects.push({ name, color });
+    currentNames.add(name);
+  });
+
+  if (hasError) {
+    await showAppAlert('El nombre de la materia no puede estar vacío.');
+    return;
+  }
+
+  for (const iso in state.days) {
+    const day = state.days[iso];
+    if (day && day.estudio) {
+      for (const h in day.estudio) {
+        if (!currentNames.has(day.estudio[h])) {
+          delete day.estudio[h];
+        }
+      }
+    }
+  }
+
+  state.subjects = newSubjects;
+  save();
+  subjectsModal.classList.remove('open');
+  populateDaySelects();
+  renderDay();
+  renderCalendar();
+  await showAppAlert('Materias guardadas y actualizadas con éxito.');
+};
+
+// ==================== APLICAR HORAS DE TRABAJO A SUS DÍAS ====================
+document.getElementById('applyWorkHoursToPatternDays').onclick = async () => {
+  if (isLocked) return;
+  const selectedJob = document.getElementById('dayWorkSelect').value;
+  if (!selectedJob) {
+    await showAppAlert('Selecciona un trabajo en el menú desplegable.');
+    return;
+  }
+
+  const day = getDay(currentDate);
+  const hoursTemplate = {};
+  for (const h in day.trabajo) {
+    if (day.trabajo[h] === selectedJob) {
+      hoursTemplate[h] = selectedJob;
+    }
+  }
+
+  if (!state.jobHourTemplates) state.jobHourTemplates = {};
+  state.jobHourTemplates[selectedJob] = hoursTemplate;
+
+  const yearToUpdate = parseISO(currentDate).getFullYear();
+  const startD = new Date(yearToUpdate, 0, 1);
+  const endD = new Date(yearToUpdate, 11, 31);
+  let curr = new Date(startD);
+  let updatedCount = 0;
+
+  while (curr <= endD) {
+    const iso = toISO(curr);
+    const activeWorksToday = getActiveWorkLabelsWithColors(iso);
+    const hasThisJobToday = activeWorksToday.some(w => w.name === selectedJob);
+
+    if (hasThisJobToday) {
+      const targetDay = getDay(iso);
+      for (const h in targetDay.trabajo) {
+        if (targetDay.trabajo[h] === selectedJob) {
+          delete targetDay.trabajo[h];
+        }
+      }
+      if (Object.keys(hoursTemplate).length > 0) {
+        for (const h in hoursTemplate) {
+          targetDay.trabajo[h] = selectedJob;
+        }
+      }
+      updatedCount++;
+    }
+    curr.setDate(curr.getDate() + 1);
+  }
+
+  save();
+  renderDay();
+  renderCalendar();
+  if (Object.keys(hoursTemplate).length === 0) {
+    await showAppAlert(`Se limpiaron las horas de "${selectedJob}" en todos sus ${updatedCount} días asignados del año.`);
+  } else {
+    await showAppAlert(`Horario de "${selectedJob}" aplicado a todos sus ${updatedCount} días laborables.`);
+  }
+};
+
+// ==================== VENTANA MODAL DE NOTAS Y EVALUACIONES ====================
+const dayNotesModal = document.getElementById('dayNotesModal');
+
+function openDayNotesModalFor(iso) {
+  modalTargetISO = iso;
+  const day = getDay(iso);
+  document.getElementById('modalNotesTitle').textContent = `Notas y Evaluaciones: ${formatDate(iso)}`;
+  
+  const evalList = document.getElementById('modalEvalsList');
+  evalList.innerHTML = '';
+  if (!day.evaluations || day.evaluations.length === 0) {
+    evalList.innerHTML = '<div style="font-size:12px; color:#888;">No hay evaluaciones registradas.</div>';
+  } else {
+    day.evaluations.forEach((ev, idx) => {
+      const row = document.createElement('div');
+      row.className = 'evalItemRow ' + (ev.done ? 'done' : '');
+      row.innerHTML = `
+        <input type="checkbox" ${ev.done ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onchange="toggleModalEvalDone('${iso}', ${idx})">
+        <span><strong>${ev.subject}</strong>: ${ev.title}</span>
+        ${!isLocked ? `<button class="delEval" onclick="deleteModalEval('${iso}', ${idx})">X</button>` : ''}
+      `;
+      evalList.appendChild(row);
+    });
+  }
+
+  const notesList = document.getElementById('modalNotesList');
+  notesList.innerHTML = '';
+  if (!day.notes || day.notes.length === 0) {
+    notesList.innerHTML = '<div style="font-size:12px; color:#888;">No hay notas adicionales.</div>';
+  } else {
+    day.notes.forEach((noteText, idx) => {
+      const row = document.createElement('div');
+      row.className = 'noteItemRow';
+      row.innerHTML = `
+        <span style="font-size:13px; color:#e0d0ff;">• ${noteText}</span>
+        ${!isLocked ? `<button class="delNote" onclick="deleteModalNote('${iso}', ${idx})">X</button>` : ''}
+      `;
+      notesList.appendChild(row);
+    });
+  }
+
+  document.getElementById('openAddEvalModal').style.display = isLocked ? 'none' : 'block';
+  document.getElementById('modalNoteInput').style.display = isLocked ? 'none' : 'block';
+  document.getElementById('saveModalNoteBtn').style.display = isLocked ? 'none' : 'block';
+  document.getElementById('modalNoteInput').value = '';
+
+  dayNotesModal.classList.add('open');
+}
+
+document.getElementById('openDayNotesModal').onclick = () => {
+  if (currentDate) openDayNotesModalFor(currentDate);
+};
+document.getElementById('closeDayNotesModal').onclick = () => {
+  dayNotesModal.classList.remove('open');
+  if (document.getElementById('dayView').classList.contains('active-view')) renderDay();
+  else if (document.getElementById('weekView').classList.contains('active-view')) renderWeek();
+  else renderCalendar();
+};
+
+window.toggleModalEvalDone = function(iso, index) {
+  if (isLocked) return;
+  const day = getDay(iso);
+  if (day.evaluations[index]) {
+    day.evaluations[index].done = !day.evaluations[index].done;
+    save();
+    openDayNotesModalFor(iso);
+  }
+};
+
+window.deleteModalEval = function(iso, index) {
+  if (isLocked) return;
+  const day = getDay(iso);
+  day.evaluations.splice(index, 1);
+  save();
+  openDayNotesModalFor(iso);
+};
+
+window.deleteModalNote = function(iso, index) {
+  if (isLocked) return;
+  const day = getDay(iso);
+  day.notes.splice(index, 1);
+  save();
+  openDayNotesModalFor(iso);
+};
+
+document.getElementById('saveModalNoteBtn').onclick = async () => {
+  if (isLocked) return;
+  const val = document.getElementById('modalNoteInput').value.trim();
+  if (!val) { await showAppAlert('Escribe contenido para la nota.'); return; }
+  const day = getDay(modalTargetISO);
+  day.notes.push(val);
+  save();
+  document.getElementById('modalNoteInput').value = '';
+  openDayNotesModalFor(modalTargetISO);
+};
+
+const evalModal = document.getElementById('evalModal');
+document.getElementById('openAddEvalModal').onclick = () => {
+  const subjects = getAvailableSubjects();
+  const select = document.getElementById('evalSubjectSelect');
+  select.innerHTML = '';
+  if (subjects.length === 0) {
+    select.innerHTML = '<option value="">Primero añade materias en Configurar Materias</option>';
+  } else {
+    subjects.forEach(sub => {
+      const opt = document.createElement('option');
+      opt.value = sub;
+      opt.textContent = sub;
+      select.appendChild(opt);
+    });
+  }
+  document.getElementById('evalTitleInput').value = '';
+  evalModal.classList.add('open');
+};
+document.getElementById('evalCancelBtn').onclick = () => evalModal.classList.remove('open');
+document.getElementById('evalSaveBtn').onclick = async () => {
+  const subject = document.getElementById('evalSubjectSelect').value;
+  const title = document.getElementById('evalTitleInput').value.trim();
+  if (!subject) { await showAppAlert('Selecciona una materia.'); return; }
+  if (!title) { await showAppAlert('Escribe el título de la evaluación.'); return; }
+
+  const day = getDay(modalTargetISO);
+  day.evaluations.push({ subject, title, done: false });
+  save();
+  evalModal.classList.remove('open');
+  openDayNotesModalFor(modalTargetISO);
+};
+
+// ==================== VISTA SEMANAL ====================
+function renderWeek() {
+  if (!weekStartDate) weekStartDate = getMondayOf(new Date());
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+
+  const dias = ['Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado','Domingo'];
+  const hoyISO = toISO(new Date());
+
+  const end = new Date(weekStartDate);
+  end.setDate(end.getDate() + 6);
+  document.getElementById('weekLabel').textContent =
+    `${weekStartDate.getDate()}/${weekStartDate.getMonth()+1} \u2014 ${end.getDate()}/${end.getMonth()+1}/${end.getFullYear()}`;
+
+  grid.appendChild(document.createElement('div'));
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStartDate);
+    d.setDate(d.getDate() + i);
+    const iso = toISO(d);
+    const h = document.createElement('div');
+    h.className = 'weekColHead';
+    if (iso === hoyISO) h.classList.add('today');
+    
+    let evalBadge = '';
+    const day = state.days[iso];
+    if (day && day.evaluations && day.evaluations.length > 0) {
+      evalBadge = '<span style="color:#ffcc66; font-size:9px; display:block;">[Eval Pendiente]</span>';
+    }
+
+    h.innerHTML = `
+      <span class="wd">${dias[i]}</span>
+      <span class="dn">${d.getDate()}</span>
+      ${evalBadge}
+      <button class="btnOpenNotesWeek" onclick="openDayNotesModalFor('${iso}')">Notas/Eval</button>
+    `;
+    grid.appendChild(h);
+  }
+
+  const blocks = state.blocks || defaultBlocks();
+  const prioGlobal = state.globalPriority;
+
+  blocks.forEach((blk, idx) => {
+    const hl = document.createElement('div');
+    hl.className = 'weekHourLabel';
+    hl.textContent = `${formatHour12(blk.ini)} - ${formatHour12(blk.fin)}`;
+    grid.appendChild(hl);
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStartDate);
+      d.setDate(d.getDate() + i);
+      const iso = toISO(d);
+      const day = state.days[iso];
+      const prio = (day && day.priority) ? day.priority : prioGlobal;
+
+      const t = (day && day.trabajo) ? day.trabajo[idx] : null;
+      const e = (day && day.estudio) ? day.estudio[idx] : null;
+
+      const cell = document.createElement('div');
+      cell.className = 'weekCell';
+
+      let texto = '';
+      if (t && e) {
+        cell.classList.add('mixed');
+        texto = (prio === 'trabajo') ? t : e;
+        cell.title = 'Trabajo: ' + t + '\nEstudio: ' + e;
+      } else if (t) {
+        cell.classList.add('trabajo');
+        texto = t;
+      } else if (e) {
+        cell.className = 'weekCell estudio';
+        cell.style.backgroundColor = getSubjectColor(e);
+        texto = e;
+      }
+      cell.textContent = texto;
+      cell.onclick = () => switchToDayView(iso);
+      grid.appendChild(cell);
+    }
+  });
+}
+
+// ==================== PINTAR ARRASTRANDO (TRABAJO Y ESTUDIO) ====================
+let painting = false, paintMode = null, paintCol = null;
+
+document.addEventListener('mousedown', e => {
+  if (isLocked) return;
+  if (!document.getElementById('dayView').classList.contains('active-view')) return;
+  const cell = e.target.closest('.cell');
+  if (!cell || cell.classList.contains('resultado')) return;
+  if (e.detail > 1) return;
+  painting = true;
+  paintCol = cell.dataset.col;
+  const h = +cell.dataset.h;
+  const day = getDay(currentDate);
+  paintMode = day[paintCol][h] ? 'remove' : 'add';
+  applyPaint(h);
+  e.preventDefault();
+});
+
+document.addEventListener('mouseover', e => {
+  if (isLocked || !painting) return;
+  const cell = e.target.closest('.cell');
+  if (!cell || cell.dataset.col !== paintCol) return;
+  applyPaint(+cell.dataset.h);
+});
+
+document.addEventListener('mouseup', () => {
+  if (painting) { painting = false; save(); renderDay(); }
+});
+
+function applyPaint(idx) {
+  const day = getDay(currentDate);
+  if (paintMode === 'add') {
+    const brush = paintCol === 'trabajo'
+      ? (document.getElementById('dayWorkSelect').value || 'Trabajo')
+      : (document.getElementById('daySubjectSelect').value || 'Estudio');
+    day[paintCol][idx] = brush;
+  } else {
+    delete day[paintCol][idx];
+  }
+  renderDay();
+}
+
+document.addEventListener('dblclick', async e => {
+  if (isLocked) return;
+  if (!document.getElementById('dayView').classList.contains('active-view')) return;
+  const cell = e.target.closest('.cell');
+  if (!cell || cell.classList.contains('resultado')) return;
+  const col = cell.dataset.col;
+  const h = +cell.dataset.h;
+  const day = getDay(currentDate);
+  if (!day[col][h]) return;
+  
+  if (col === 'estudio') {
+    const subs = getAvailableSubjects();
+    let msg = 'Selecciona la nueva materia (o déjalo vacío para borrar):\n' + subs.join(', ');
+    const nuevo = prompt(msg, day[col][h]);
+    if (nuevo === null) return;
+    if (nuevo.trim() === '') delete day[col][h];
+    else day[col][h] = nuevo.trim();
+  } else {
+    const nuevo = prompt('Editar etiqueta (vac\u00edo para borrar):', day[col][h]);
+    if (nuevo === null) return;
+    if (nuevo.trim() === '') delete day[col][h];
+    else day[col][h] = nuevo.trim();
+  }
+  save(); renderDay();
+});
+
+// ==================== NAVEGACIÓN Y BOTONES ====================
+document.getElementById('tabCalendar').onclick = () => {
+  switchToCalendarView(true);
+};
+
+document.getElementById('tabDay').onclick = () => {
+  if (!currentDate) currentDate = toISO(new Date());
+  switchToDayView(currentDate, true);
+};
+
+document.getElementById('tabWeek').onclick = () => {
+  switchToWeekView(true);
+};
+
+document.getElementById('prevMonth').onclick = () => {
+  calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar();
+};
+document.getElementById('nextMonth').onclick = () => {
+  calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar();
+};
+document.getElementById('calCurrentMonth').onclick = () => {
+  const hoy = new Date();
+  calYear = hoy.getFullYear();
+  calMonth = hoy.getMonth();
+  renderCalendar();
+};
+document.getElementById('prevWeek').onclick = () => {
+  weekStartDate.setDate(weekStartDate.getDate() - 7);
+  renderWeek();
+};
+document.getElementById('nextWeek').onclick = () => {
+  weekStartDate.setDate(weekStartDate.getDate() + 7);
+  renderWeek();
+};
+document.getElementById('weekToday').onclick = () => {
+  weekStartDate = getMondayOf(new Date());
+  renderWeek();
+};
+document.getElementById('backToCal').onclick = () => {
+  window.history.back();
+};
+
+document.getElementById('dayPriority').onchange = e => {
+  if (isLocked) return;
+  getDay(currentDate).priority = e.target.value; save(); renderDay();
+};
+document.getElementById('fillTrabajoDay').onclick = () => {
+  if (isLocked) return;
+  const day = getDay(currentDate);
+  const lbl = document.getElementById('dayWorkSelect').value || 'Trabajo';
+  const total = (state.blocks || defaultBlocks()).length;
+  for (let h = 0; h < total; h++) day.trabajo[h] = lbl;
+  save(); renderDay();
+};
+document.getElementById('clearTrabajo').onclick = () => { if(!isLocked){ getDay(currentDate).trabajo = {}; save(); renderDay(); } };
+document.getElementById('fillEstudioDay').onclick = () => {
+  if (isLocked) return;
+  const day = getDay(currentDate);
+  const lbl = document.getElementById('daySubjectSelect').value || 'Estudio';
+  const total = (state.blocks || defaultBlocks()).length;
+  for (let h = 0; h < total; h++) day.estudio[h] = lbl;
+  save(); renderDay();
+};
+document.getElementById('clearEstudio').onclick = () => { if(!isLocked){ getDay(currentDate).estudio = {}; save(); renderDay(); } };
+document.getElementById('clearDay').onclick = () => {
+  if (isLocked) return;
+  state.days[currentDate] = { trabajo: {}, estudio: {}, priority: '', evaluations: [], notes: [] };
+  save(); renderDay();
+};
+
+// ==================== PATRONES ====================
+const patternModal = document.getElementById('patternModal');
+let draftPatterns = [];
+function renderPatternsEditor() {
+  const container = document.getElementById('patternsListContainer');
+  container.innerHTML = '';
+  draftPatterns.forEach((pat, i) => {
+    const item = document.createElement('div');
+    item.className = 'patternItem';
+    const assignedColor = pat.color || getJobColor(i);
+    item.innerHTML = `
+      <button class="delPat" type="button" onclick="removeDraftPattern(${i})">Eliminar</button>
+      <label><input type="checkbox" class="patEnabled" ${pat.enabled ? 'checked' : ''}> Activar este trabajo</label>
+      <label>Nombre del trabajo:</label>
+      <input type="text" class="patName" value="${pat.name || ''}" placeholder="Ej: Trabajo A" data-orig-name="${pat.name || ''}">
+      <label>Color representativo:</label>
+      <input type="color" class="patColor" value="${assignedColor}" style="width: 100%; height: 32px; background: #3a3a52; cursor: pointer;">
+      <label>Fecha de inicio:</label>
+      <input type="date" class="patStart" value="${pat.startDate || ''}">
+      <label>Fecha de fin (opcional):</label>
+      <input type="date" class="patEnd" value="${pat.endDate || ''}">
+      <label>D&iacute;as trabajando:</label>
+      <input type="number" class="patWorkDays" min="1" value="${pat.workDays || 1}">
+      <label>D&iacute;as de descanso:</label>
+      <input type="number" class="patRestDays" min="1" value="${pat.restDays || 3}">
+    `;
+    container.appendChild(item);
+  });
+}
+window.removeDraftPattern = async function(index) {
+  const patToDelete = draftPatterns[index];
+  const jobName = patToDelete ? patToDelete.name : null;
+
+  draftPatterns.splice(index, 1);
+  renderPatternsEditor();
+
+  if (jobName) {
+    if (state.jobHourTemplates && state.jobHourTemplates[jobName]) {
+      delete state.jobHourTemplates[jobName];
+    }
+    for (const iso in state.days) {
+      const day = state.days[iso];
+      if (day && day.trabajo) {
+        for (const hourIdx in day.trabajo) {
+          if (day.trabajo[hourIdx] === jobName || day.trabajo[hourIdx].includes(jobName)) {
+            delete day.trabajo[hourIdx];
+          }
+        }
+      }
+    }
+
+    if (state.manualDays) {
+      for (const iso in state.manualDays) {
+        state.manualDays[iso] = state.manualDays[iso].filter(name => name !== jobName);
+        if (state.manualDays[iso].length === 0) {
+          delete state.manualDays[iso];
+        }
+      }
+    }
+
+    save();
+  }
+};
+document.getElementById('openPattern').onclick = () => {
+  draftPatterns = JSON.parse(JSON.stringify(state.patterns || []));
+  renderPatternsEditor();
+  patternModal.classList.add('open');
+};
+document.getElementById('patAddBtn').onclick = async () => {
+  if (draftPatterns.length >= 5) { await showAppAlert('Máximo 5 trabajos.'); return; }
+  const newIdx = draftPatterns.length;
+  draftPatterns.push({ 
+    name: 'Trabajo ' + (newIdx + 1), 
+    color: DEFAULT_JOB_COLORS[newIdx % DEFAULT_JOB_COLORS.length],
+    enabled: true, 
+    startDate: '2026-10-11', 
+    endDate: '', 
+    workDays: 1, 
+    restDays: 3 
+  });
+  renderPatternsEditor();
+};
+document.getElementById('patCancel').onclick = () => patternModal.classList.remove('open');
+
+document.getElementById('patSave').onclick = async () => {
+  const items = document.querySelectorAll('.patternItem');
+  const newPatterns = [];
+  const nameChanges = {};
+
+  items.forEach((item, idx) => {
+    const enabled = item.querySelector('.patEnabled').checked;
+    const nameInput = item.querySelector('.patName');
+    const newName = nameInput.value.trim() || ('Trabajo ' + (idx + 1));
+    const origName = nameInput.getAttribute('data-orig-name');
+
+    if (origName && origName !== newName) {
+      nameChanges[origName] = newName;
+    }
+
+    const color = item.querySelector('.patColor').value || DEFAULT_JOB_COLORS[idx % DEFAULT_JOB_COLORS.length];
+    const startDate = item.querySelector('.patStart').value || '2026-10-11';
+    const endDate = item.querySelector('.patEnd').value || '';
+    const workDays = Math.max(1, +item.querySelector('.patWorkDays').value || 1);
+    const restDays = Math.max(1, +item.querySelector('.patRestDays').value || 1);
+    newPatterns.push({ enabled, name: newName, color, startDate, endDate, workDays, restDays });
+  });
+
+  if (Object.keys(nameChanges).length > 0 && state.jobHourTemplates) {
+    for (const oldName in nameChanges) {
+      const newName = nameChanges[oldName];
+      if (state.jobHourTemplates[oldName]) {
+        state.jobHourTemplates[newName] = state.jobHourTemplates[oldName];
+        delete state.jobHourTemplates[oldName];
+      }
+    }
+  }
+
+  if (Object.keys(nameChanges).length > 0) {
+    for (const iso in state.days) {
+      const day = state.days[iso];
+      if (day && day.trabajo) {
+        for (const h in day.trabajo) {
+          const currentVal = day.trabajo[h];
+          for (const oldName in nameChanges) {
+            if (currentVal === oldName) {
+              day.trabajo[h] = nameChanges[oldName];
+            }
+          }
+        }
+      }
+    }
+
+    if (state.manualDays) {
+      for (const iso in state.manualDays) {
+        state.manualDays[iso] = state.manualDays[iso].map(jobName => {
+          for (const oldName in nameChanges) {
+            if (jobName === oldName) return nameChanges[oldName];
+          }
+          return jobName;
+        });
+      }
+    }
+  }
+
+  state.patterns = newPatterns;
+  save();
+  patternModal.classList.remove('open');
+  renderCalendar();
+  await showAppAlert('Patrones guardados y actualizados correctamente.');
+};
+
+// ==================== CALENDARIO DE DÍAS SUELTOS (MANUALES) ====================
+const manualDaysModal = document.getElementById('manualDaysModal');
+
+function getActiveJobNamesList() {
+  const names = [];
+  if (state.patterns && state.patterns.length > 0) {
+    state.patterns.forEach(p => { if (p.name) names.push(p.name); });
+  }
+  if (names.length === 0) names.push('Trabajo');
+  return names;
+}
+
+document.getElementById('openManualDaysModal').onclick = () => {
+  const select = document.getElementById('manualJobSelect');
+  select.innerHTML = '';
+  const names = getActiveJobNamesList();
+  names.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    select.appendChild(opt);
+  });
+
+  const hoy = new Date();
+  manYear = hoy.getFullYear();
+  manMonth = hoy.getMonth();
+  renderManualCalendar();
+  patternModal.classList.remove('open');
+  manualDaysModal.classList.add('open');
+};
+
+document.getElementById('closeManualModal').onclick = () => {
+  manualDaysModal.classList.remove('open');
+  patternModal.classList.add('open');
+  renderCalendar();
+};
+
+document.getElementById('manPrevMonth').onclick = () => {
+  manMonth--; if (manMonth < 0) { manMonth = 11; manYear--; } renderManualCalendar();
+};
+document.getElementById('manNextMonth').onclick = () => {
+  manMonth++; if (manMonth > 11) { manMonth = 0; manYear++; } renderManualCalendar();
+};
+
+function renderManualCalendar() {
+  const grid = document.getElementById('manualCalGrid');
+  grid.innerHTML = '';
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('manMonthLabel').textContent = `${meses[manMonth]} ${manYear}`;
+
+  ['Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b','Dom'].forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'manualDayName'; el.textContent = n;
+    grid.appendChild(el);
+  });
+
+  const first = new Date(manYear, manMonth, 1);
+  let startCol = first.getDay();
+  startCol = (startCol === 0) ? 6 : startCol - 1;
+
+  const daysInMonth = new Date(manYear, manMonth+1, 0).getDate();
+  const prevMonthDays = new Date(manYear, manMonth, 0).getDate();
+
+  for (let i = startCol - 1; i >= 0; i--) {
+    grid.appendChild(makeManualDayCell(manYear, manMonth - 1, prevMonthDays - i, true));
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    grid.appendChild(makeManualDayCell(manYear, manMonth, d, false));
+  }
+  const remaining = (7 - ((startCol + daysInMonth) % 7)) % 7;
+  for (let d = 1; d <= remaining; d++) {
+    grid.appendChild(makeManualDayCell(manYear, manMonth + 1, d, true));
+  }
+}
+
+function makeManualDayCell(y, m, d, otherMonth) {
+  const date = new Date(y, m, d);
+  const iso = toISO(date);
+  const el = document.createElement('div');
+  el.className = 'manualDayCell';
+  if (otherMonth) el.classList.add('otherMonth');
+
+  const num = document.createElement('div');
+  num.className = 'mNum'; num.textContent = d;
+  el.appendChild(num);
+
+  const marksContainer = document.createElement('div');
+  marksContainer.className = 'manualDayMarks';
+
+  if (state.manualDays && state.manualDays[iso]) {
+    state.manualDays[iso].forEach(jobName => {
+      let dotColor = '#e65c5c';
+      if (state.patterns) {
+        const found = state.patterns.find(p => p.name === jobName);
+        if (found) dotColor = found.color;
+      }
+      const dot = document.createElement('span');
+      dot.className = 'manualMarkDot';
+      dot.style.backgroundColor = dotColor;
+      dot.title = jobName;
+      marksContainer.appendChild(dot);
+    });
+  }
+  el.appendChild(marksContainer);
+
+  el.onclick = () => {
+    const selectedJob = document.getElementById('manualJobSelect').value;
+    if (!selectedJob) return;
+
+    if (!state.manualDays) state.manualDays = {};
+    if (!state.manualDays[iso]) state.manualDays[iso] = [];
+
+    const idx = state.manualDays[iso].indexOf(selectedJob);
+    if (idx >= 0) {
+      state.manualDays[iso].splice(idx, 1);
+      if (state.manualDays[iso].length === 0) delete state.manualDays[iso];
+    } else {
+      state.manualDays[iso].push(selectedJob);
+    }
+    save();
+    renderManualCalendar();
+  };
+
+  return el;
+}
+
+async function applyPatternsToRange(startD, endD) {
+  const hasActive = state.patterns.some(p => p.enabled);
+  if (!hasActive) { await showAppAlert('Primero activa al menos un patrón.'); return; }
+  let curr = new Date(startD);
+  while (curr <= endD) {
+    const iso = toISO(curr);
+    const day = getDay(iso);
+    const workLabels = getActiveWorkLabelsWithColors(iso);
+    
+    day.trabajo = {};
+    if (workLabels.length > 0) {
+      workLabels.forEach(w => {
+        const tpl = state.jobHourTemplates ? state.jobHourTemplates[w.name] : null;
+        if (tpl && Object.keys(tpl).length > 0) {
+          for (const h in tpl) {
+            day.trabajo[h] = w.name;
+          }
+        }
+      });
+    }
+    curr.setDate(curr.getDate() + 1);
+  }
+  save();
+  renderCalendar();
+}
+document.getElementById('applyPattern').onclick = async () => {
+  await applyPatternsToRange(new Date(calYear, calMonth, 1), new Date(calYear, calMonth + 1, 0));
+  await showAppAlert('Patrones aplicados al mes visible.');
+};
+document.getElementById('applyPatternYear').onclick = async () => {
+  await applyPatternsToRange(new Date(calYear, 0, 1), new Date(calYear, 11, 31));
+  await showAppAlert('Patrones aplicados a todo el año ' + calYear + '.');
+};
+
+// ==================== REPETIR ESTUDIO ====================
+const repeatModal = document.getElementById('repeatModal');
+const DIAS = ['domingo','lunes','martes','mi\u00e9rcoles','jueves','viernes','s\u00e1bado'];
+document.getElementById('repeatStudy').onclick = () => {
+  if (isLocked) return;
+  const d = parseISO(currentDate);
+  const wd = d.getDay();
+  document.getElementById('repWeekday').textContent = DIAS[wd];
+  document.getElementById('repWeekday2').textContent = DIAS[wd] + 's';
+  document.getElementById('repStart').value = currentDate;
+  const end = new Date(d); end.setMonth(end.getMonth() + 4);
+  document.getElementById('repEndStudy').value = toISO(end);
+  document.getElementById('repOverwrite').checked = true;
+  repeatModal.classList.add('open');
+};
+document.getElementById('repCancel').onclick = () => repeatModal.classList.remove('open');
+document.getElementById('repSave').onclick = async () => {
+  const start = document.getElementById('repStart').value;
+  const end = document.getElementById('repEndStudy').value;
+  const overwrite = document.getElementById('repOverwrite').checked;
+  if (!start || !end) { await showAppAlert('Faltan fechas.'); return; }
+  if (start > end) { await showAppAlert('Inicio debe ser anterior a fin.'); return; }
+  const src = getDay(currentDate).estudio;
+  const wd = parseISO(currentDate).getDay();
+  let d = parseISO(start);
+  const endD = parseISO(end);
+  let count = 0;
+  while (d <= endD) {
+    if (d.getDay() === wd) {
+      const iso = toISO(d);
+      const day = getDay(iso);
+      if (overwrite) {
+        if (Object.keys(src).length === 0) {
+          day.estudio = {};
+        } else {
+          day.estudio = Object.assign({}, src);
+        }
+      } else {
+        for (const k in src) if (!day.estudio[k]) day.estudio[k] = src[k];
+      }
+      count++;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  save(); repeatModal.classList.remove('open');
+  await showAppAlert('Estudio copiado a ' + count + ' días.');
+  renderCalendar();
+};
+
+// ==================== BLOQUES HORARIOS ====================
+const blocksModal = document.getElementById('blocksModal');
+let draftBlocks = [];
+function renderBlocksEditor() {
+  const list = document.getElementById('blkList');
+  list.innerHTML = '';
+  draftBlocks.forEach((blk, i) => {
+    const row = document.createElement('div');
+    row.className = 'blkRow';
+    const ini = document.createElement('input'); ini.type = 'time'; ini.value = blk.ini; ini.onchange = () => { draftBlocks[i].ini = ini.value; };
+    const fin = document.createElement('input'); fin.type = 'time'; fin.value = blk.fin; fin.onchange = () => { draftBlocks[i].fin = fin.value; };
+    const lbl = document.createElement('input'); lbl.type = 'text'; lbl.placeholder = 'Etiqueta'; lbl.value = blk.label || ''; lbl.onchange = () => { draftBlocks[i].label = lbl.value; };
+    const del = document.createElement('button'); del.className = 'del'; del.textContent = 'X'; del.onclick = () => { draftBlocks.splice(i, 1); renderBlocksEditor(); };
+    row.appendChild(ini); row.appendChild(fin); row.appendChild(lbl); row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+document.getElementById('openBlocks').onclick = () => {
+  draftBlocks = JSON.parse(JSON.stringify(state.blocks || defaultBlocks()));
+  renderBlocksEditor();
+  blocksModal.classList.add('open');
+};
+document.getElementById('blkAdd').onclick = () => {
+  const last = draftBlocks[draftBlocks.length - 1];
+  draftBlocks.push({ id: 'b' + Date.now(), ini: last ? last.fin : '00:00', fin: last ? last.fin : '00:00', label: '' });
+  renderBlocksEditor();
+};
+document.getElementById('blkDefaults').onclick = async () => {
+  if (!await showAppConfirm('¿Restaurar 24h?')) return;
+  draftBlocks = defaultBlocks();
+  renderBlocksEditor();
+};
+document.getElementById('blkCancel').onclick = () => blocksModal.classList.remove('open');
+document.getElementById('blkSave').onclick = async () => {
+  if (draftBlocks.length === 0) { await showAppAlert('Añade un bloque.'); return; }
+  state.blocks = JSON.parse(JSON.stringify(draftBlocks));
+  save(); blocksModal.classList.remove('open'); 
+  if (document.getElementById('dayView').classList.contains('active-view')) renderDay();
+  else if (document.getElementById('weekView').classList.contains('active-view')) renderWeek();
+  await showAppAlert('Bloques guardados.');
+};
+
+// ==================== EXPORTAR / IMPORTAR ====================
+document.getElementById('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'horario_' + toISO(new Date()) + '.json'; a.click();
+  URL.revokeObjectURL(url);
+};
+document.getElementById('importBtn').onclick = () => document.getElementById('importFile').click();
+document.getElementById('importFile').onchange = e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+        state = Object.assign(state, JSON.parse(ev.target.result));
+        if (!state.blocks || state.blocks.length === 0) state.blocks = defaultBlocks();
+        save(); renderCalendar();
+        await showAppAlert('Datos importados.');
+    } catch(err) { await showAppAlert('Archivo inválido.'); }
+  };
+  reader.readAsText(file);
+};
+
+// ==================== INICIO ====================
+load();
+const hoy = new Date();
+calYear = hoy.getFullYear();
+calMonth = hoy.getMonth();
+renderCalendar();
 </script>
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    });
-  }
+// ==================== REGISTRO DE PWA ====================
+let newWorker;
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        console.log('Service Worker registrado con éxito:', reg.scope);
+        reg.addEventListener('updatefound', () => {
+          newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showAppConfirm("¡Hay una nueva actualización disponible! ¿Deseas actualizar ahora?").then(res => {
+                if (res) {
+                  newWorker.postMessage({ action: 'skipWaiting' });
+                  window.location.reload();
+                }
+              });
+            }
+          });
+        });
+      })
+      .catch(err => console.log('Error al registrar el Service Worker:', err));
+  });
+}
 </script>
 </body>
 </html>
