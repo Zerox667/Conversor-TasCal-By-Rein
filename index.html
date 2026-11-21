@@ -8,17 +8,16 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<!-- Se eliminó el CDN bloqueante. Ahora se carga de forma segura para permitir uso offline -->
 <style>
   :root {
     --bg: #0f172a; --panel: #1e293b; --text: #f8fafc; --text-muted: #94a3b8;
     --border: #334155; --primary: #3b82f6; --success: #10b981; --danger: #ef4444;
-    --input-bg: #0f172a;
+    --warning: #f59e0b; --input-bg: #0f172a;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; height: 100%; height: 100dvh; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, system-ui, sans-serif; font-size: 14px; }
   .app-container { display: flex; flex-direction: column; height: 100%; }
-  .top-panel { flex-shrink: 0; padding: 8px; display: flex; flex-direction: column; gap: 6px; background: var(--bg); z-index: 10; }
+  .top-panel { flex-shrink: 0; padding: 8px 8px 4px 8px; display: flex; flex-direction: column; gap: 6px; background: var(--bg); z-index: 10; }
   .card { background: var(--panel); border-radius: 8px; padding: 8px 10px; box-shadow: 0 2px 4px rgba(0,0,0,.2); border: 1px solid var(--border); }
   
   .tasa-row { display: flex; align-items: stretch; gap: 4px; }
@@ -48,34 +47,96 @@
     cursor: pointer; padding: 2px 4px; text-decoration: underline; height: auto;
   }
 
+  .view-section { flex: 1; display: none; flex-direction: column; min-height: 0; }
+  .view-section.active { display: flex; }
+
   .row { display: flex; gap: 6px; margin-bottom: 6px; }
   .row > * { flex: 1; min-width: 0; }
   label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 3px; }
-  input, select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 16px; height: 38px; background: var(--input-bg); color: var(--text); color-scheme: dark; }
-  input:focus, select:focus { outline: 2px solid var(--primary); border-color: transparent; }
-  button { padding: 0 10px; border: none; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; height: 38px; color: var(--text); transition: opacity 0.2s; }
+  input, select, textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 16px; height: 38px; background: var(--input-bg); color: var(--text); color-scheme: dark; }
+  textarea { height: 78px; font-size: 12px; font-family: monospace; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); border-color: transparent; }
+  button { padding: 0 10px; border: none; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; height: 38px; color: var(--text); transition: opacity 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
   button:active { opacity: .7; }
+  button.primary { background: var(--primary); color: #fff; }
   button.success { background: var(--success); flex: 2; color: #fff;}
   button.secondary { background: var(--border); flex: 1; }
   button.danger { background: var(--danger); flex: 1; color: #fff; }
+
   .resultado-box { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 6px; text-align: center; font-size: 20px; font-weight: 700; color: var(--success); margin-bottom: 6px; min-height: 38px; display: flex; align-items: center; justify-content: center; }
-  .scroll-area { flex: 1; overflow-y: auto; padding: 0 8px 8px 8px; }
+  .scroll-area { flex: 1; overflow-y: auto; padding: 4px 8px 8px 8px; }
   .lista { list-style: none; padding: 0; margin: 0; }
-  .lista li { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; border: 1px solid var(--border); gap: 8px; }
+  .lista li { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; border: 1px solid var(--border); gap: 6px; }
   .lista .info { flex: 1; min-width: 0; }
   .lista .info div:first-child { font-size: 13px; color: var(--text); }
   .lista .detalle { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
-  .lista .valor { font-weight: 700; white-space: nowrap; font-size: 15px; color: var(--text); }
+  .lista .valor { font-weight: 700; white-space: nowrap; font-size: 14px; color: var(--text); }
   .lista .del { background: rgba(239, 68, 68, 0.15); color: var(--danger); width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 6px; font-size: 16px; flex-shrink: 0; border: 1px solid rgba(239, 68, 68, 0.3); }
-  .empty { text-align: center; color: var(--text-muted); padding: 20px; font-size: 13px; }
-  .bottom-panel { flex-shrink: 0; background: var(--panel); border-top: 1px solid var(--border); padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; }
+  .lista .edit-btn { background: rgba(59, 130, 246, 0.15); color: var(--primary); width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 6px; font-size: 13px; flex-shrink: 0; border: 1px solid rgba(59, 130, 246, 0.3); }
+  .lista .conv-btn { background: rgba(16, 185, 129, 0.16); color: #34d399; width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 6px; font-size: 13px; flex-shrink: 0; border: 1px solid rgba(16, 185, 129, 0.35); }
+  .empty { text-align: center; color: var(--text-muted); padding: 16px; font-size: 13px; }
+
+  /* COMPARADOR BULTO VS UNIDAD */
+  .comp-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+  .comp-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .verdict-box { border-radius: 8px; padding: 10px; border: 1px solid var(--border); background: var(--input-bg); margin-bottom: 8px; }
+  .verdict-box.good { border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.12); }
+  .verdict-box.bad { border-color: rgba(239, 68, 68, 0.45); background: rgba(239, 68, 68, 0.12); }
+  .verdict-box.neutral { border-color: rgba(148, 163, 184, 0.35); background: rgba(15, 23, 42, 0.7); }
+  .verdict-header { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+  .verdict-box.good .verdict-header { color: var(--success); }
+  .verdict-box.bad .verdict-header { color: var(--danger); }
+  .verdict-box.neutral .verdict-header { color: var(--text-muted); }
+  .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .comp-stat { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 7px 8px; }
+  .comp-stat span { display: block; font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+  .comp-stat strong { display: block; font-size: 14px; color: var(--text); margin-top: 2px; }
+  .comp-stat small { display: block; font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+  /* CATALOGO PRECIOS POR TIENDA */
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+  .badge-unidad { background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); }
+  .badge-bulto { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+  .item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+  /* CALCULADORA CON HISTORIAL GUARDADO */
+  .calc-display {
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; margin-bottom: 6px;
+  }
+  .calc-expr { font-size: 12px; color: var(--text-muted); min-height: 16px; word-break: break-all; }
+  .calc-res { font-size: 22px; font-weight: 800; color: var(--success); text-align: right; line-height: 1.2; margin-top: 2px; }
+  .calc-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px; }
+  .calc-key { height: 34px; font-size: 15px; background: var(--input-bg); border: 1px solid var(--border); }
+  .calc-key.op { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.35); }
+  .calc-key.eq { background: var(--success); color: #fff; border: none; }
+  .calc-key.clr { background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.35); }
+
+  /* PANEL INFERIOR + BARRA DE NAVEGACIÓN */
+  .footer-stack { flex-shrink: 0; background: var(--panel); border-top: 1px solid var(--border); z-index: 20; }
+  .bottom-panel { padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .bottom-panel .label { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-  .bottom-panel .val { font-size: 18px; font-weight: 700; color: var(--primary); line-height: 1.1; }
-  .btn-limpiar { background: var(--input-bg); border: 1px solid var(--border); width: 36px; height: 36px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .bottom-panel .val { font-size: 16px; font-weight: 700; color: var(--primary); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .footer-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+  .btn-footer-mini { background: var(--input-bg); border: 1px solid var(--border); height: 34px; padding: 0 10px; font-size: 12px; font-weight: 700; }
+  .btn-limpiar { background: var(--input-bg); border: 1px solid var(--border); width: 34px; height: 34px; padding: 0; font-size: 15px; }
+
+  .bottom-nav {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px;
+    padding: 4px 5px 6px 5px; background: var(--input-bg); border-top: 1px solid var(--border);
+  }
+  .nav-tab {
+    height: 36px; border-radius: 6px; background: transparent; color: var(--text-muted);
+    font-size: 10px; font-weight: 700; padding: 0 2px; flex-direction: column; gap: 1px; line-height: 1.1;
+  }
+  .nav-tab span:first-child { font-size: 13px; }
+  .nav-tab.active {
+    background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);
+  }
 
   /* NOTIFICACIONES FLOTANTES (TOASTS) */
   .toast-msg {
-    position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: 108px; left: 50%; transform: translateX(-50%);
     background: rgba(15, 23, 42, 0.96); color: var(--text); border: 1px solid var(--primary);
     padding: 9px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
     box-shadow: 0 4px 14px rgba(0,0,0,0.5); z-index: 300;
@@ -84,7 +145,7 @@
   }
   .toast-msg.show { opacity: 1; }
 
-  /* MODALES PERSONALIZADOS (TASA MANUAL Y CONFIRMACIONES) */
+  /* MODALES PERSONALIZADOS */
   .custom-modal-backdrop {
     position: fixed; inset: 0; background: rgba(0, 0, 0, 0.72); z-index: 150;
     display: none; align-items: center; justify-content: center; padding: 16px;
@@ -93,8 +154,8 @@
   .custom-modal-backdrop.active { display: flex; }
   .custom-modal {
     background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-    width: 100%; max-width: 340px; padding: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    display: flex; flex-direction: column; gap: 12px;
+    width: 100%; max-width: 360px; padding: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; gap: 10px; max-height: 90dvh; overflow-y: auto;
   }
   .custom-modal h3 { margin: 0; font-size: 16px; color: var(--text); text-align: center; }
   .custom-modal p { margin: 0; font-size: 13px; color: var(--text-muted); text-align: center; line-height: 1.4; }
@@ -170,40 +231,221 @@
         <button id="btn-manual" class="btn-manual">+ Tasa manual</button>
       </div>
     </div>
+  </div>
 
-    <div class="card">
-      <div class="row">
-        <div><label>De</label><select id="divisa-origen"><option value="USD">USD $</option><option value="EUR">EUR €</option><option value="VES">VES Bs</option></select></div>
-        <div><label>A</label><select id="divisa-destino"><option value="VES" selected>VES Bs</option><option value="USD">USD $</option><option value="EUR">EUR €</option></select></div>
+  <!-- VISTA 1: CONVERSOR Y LISTA -->
+  <div id="view-conversor" class="view-section active">
+    <div style="padding: 0 8px;">
+      <div class="card">
+        <div class="row">
+          <div><label>De</label><select id="divisa-origen"><option value="USD">USD $</option><option value="EUR">EUR €</option><option value="VES">VES Bs</option></select></div>
+          <div><label>A</label><select id="divisa-destino"><option value="VES" selected>VES Bs</option><option value="USD">USD $</option><option value="EUR">EUR €</option></select></div>
+        </div>
+        <div class="row">
+          <div style="flex:2"><label>Precio</label><input type="text" id="precio" placeholder="0,00" inputmode="decimal" autocomplete="one-time-code" autocorrect="off" spellcheck="false"></div>
+          <div style="flex:1"><label>Cant.</label><input type="number" id="multiplicador" value="1" step="1" min="1" inputmode="numeric"></div>
+        </div>
+        <div class="resultado-box" id="resultado-unitario">0,00</div>
+        <div class="row" style="margin-bottom:0;">
+          <button id="btn-foto" class="secondary">📷 Escanear en Vivo</button>
+          <button id="btn-agregar" class="success">➕ Añadir</button>
+        </div>
       </div>
-      <div class="row">
-		<div style="flex:2"><label>Precio</label><input type="text" id="precio" placeholder="0,00" inputmode="decimal" autocomplete="one-time-code" autocorrect="off" spellcheck="false"></div>
-        <div style="flex:1"><label>Cant.</label><input type="number" id="multiplicador" value="1" step="1" min="1" inputmode="numeric"></div>
+    </div>
+
+    <div class="scroll-area">
+      <ul class="lista" id="lista-items"></ul>
+      <div id="empty-msg" class="empty">Añade productos para ver el total</div>
+    </div>
+  </div>
+
+  <!-- VISTA 2: COMPARADOR BULTO VS UNIDAD -->
+  <div id="view-bulto" class="view-section">
+    <div class="scroll-area">
+      <div class="comp-card">
+        <div class="comp-title">
+          <span>Datos de comparación</span>
+          <select id="comp-moneda" style="width:auto; height:28px; padding:2px 8px; font-size:12px;">
+            <option value="USD">Precios en USD ($)</option>
+            <option value="VES">Precios en VES (Bs)</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Precio por unidad</label>
+            <input type="text" id="comp-precio-unit" placeholder="0,00" inputmode="decimal" autocomplete="off">
+          </div>
+          <div>
+            <label>Precio del bulto</label>
+            <input type="text" id="comp-precio-bulto" placeholder="0,00" inputmode="decimal" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="row" style="margin-bottom:0;">
+          <div>
+            <label>Unidades en el bulto</label>
+            <input type="number" id="comp-cant-bulto" placeholder="Ej: 12, 24" min="1" step="1" inputmode="numeric">
+          </div>
+          <div>
+            <label>Artículo (opcional)</label>
+            <input type="text" id="comp-nombre" placeholder="Ej: Harina, Refresco" autocomplete="off">
+          </div>
+        </div>
       </div>
-      <div class="resultado-box" id="resultado-unitario">0,00</div>
+
+      <div id="comp-resultado" class="verdict-box neutral">
+        <div class="verdict-header">Ingresa unidad, bulto y cantidad</div>
+        <div style="font-size:12px; color:var(--text-muted);">Verás el precio unitario del bulto y tu ahorro real en Bs y $.</div>
+      </div>
+
       <div class="row" style="margin-bottom:0;">
-        <button id="btn-foto" class="secondary">📷 Escanear en Vivo</button>
-        <button id="btn-agregar" class="success">➕ Añadir</button>
+        <button type="button" id="btn-comp-limpiar" class="secondary">Limpiar</button>
+        <button type="button" id="btn-comp-guardar" class="primary" style="flex:2;">💾 Guardar bulto en Precios</button>
       </div>
     </div>
   </div>
 
-  <div class="scroll-area">
-    <ul class="lista" id="lista-items"></ul>
-    <div id="empty-msg" class="empty">Añade productos para ver el total</div>
+  <!-- VISTA 3: CATÁLOGO DE PRECIOS POR LUGAR / TIENDA -->
+  <div id="view-precios" class="view-section">
+    <div style="padding: 0 8px;">
+      <div class="card" style="margin-bottom: 4px;">
+        <div class="row">
+          <input type="text" id="buscar-catalogo" placeholder="🔍 Buscar texto..." autocomplete="off">
+          <select id="orden-catalogo" style="flex:0 0 128px; font-size:12px; padding:4px 6px;">
+            <option value="recientes">Últimos añadidos</option>
+            <option value="producto">Por producto</option>
+            <option value="marca">Por marca</option>
+          </select>
+        </div>
+        <div class="row" style="margin-bottom:0;">
+          <button type="button" id="btn-nuevo-precio" class="success" style="width:100%;">+ Nuevo Artículo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-area">
+      <ul class="lista" id="lista-catalogo"></ul>
+      <div id="empty-catalogo" class="empty">No hay artículos guardados aún. Toca "+ Nuevo Artículo" para registrar precios por tienda.</div>
+    </div>
   </div>
 
-  <div class="bottom-panel">
-    <div>
-      <div class="label">Total a pagar</div>
-      <div class="val" id="total-pagar">0,00 Bs</div>
+  <!-- VISTA 4: CALCULADORA CON CÁLCULOS GUARDADOS POR NOMBRE -->
+  <div id="view-calc" class="view-section">
+    <div style="padding: 0 8px;">
+      <div class="card" style="margin-bottom: 4px;">
+        <div class="calc-display">
+          <div class="calc-expr" id="calc-expr">0</div>
+          <div class="calc-res" id="calc-res">0,00</div>
+        </div>
+
+        <div class="calc-pad">
+          <button type="button" class="calc-key clr" data-k="C">C</button>
+          <button type="button" class="calc-key op" data-k="DEL">⌫</button>
+          <button type="button" class="calc-key op" data-k="(">(</button>
+          <button type="button" class="calc-key op" data-k=")">)</button>
+
+          <button type="button" class="calc-key" data-k="7">7</button>
+          <button type="button" class="calc-key" data-k="8">8</button>
+          <button type="button" class="calc-key" data-k="9">9</button>
+          <button type="button" class="calc-key op" data-k="/">÷</button>
+
+          <button type="button" class="calc-key" data-k="4">4</button>
+          <button type="button" class="calc-key" data-k="5">5</button>
+          <button type="button" class="calc-key" data-k="6">6</button>
+          <button type="button" class="calc-key op" data-k="*">×</button>
+
+          <button type="button" class="calc-key" data-k="1">1</button>
+          <button type="button" class="calc-key" data-k="2">2</button>
+          <button type="button" class="calc-key" data-k="3">3</button>
+          <button type="button" class="calc-key op" data-k="-">−</button>
+
+          <button type="button" class="calc-key" data-k="0">0</button>
+          <button type="button" class="calc-key" data-k=",">,</button>
+          <button type="button" class="calc-key eq" data-k="=">=</button>
+          <button type="button" class="calc-key op" data-k="+">+</button>
+        </div>
+
+        <div class="row" style="margin-bottom:0;">
+          <input type="text" id="calc-nombre" placeholder="Nombre del cálculo (ej: Mercado)" autocomplete="off">
+          <button type="button" id="btn-guardar-calc" class="primary" style="flex:0 0 auto; padding:0 12px;">💾 Guardar</button>
+        </div>
+      </div>
     </div>
-    <button id="btn-limpiar" class="btn-limpiar">🗑️</button>
+
+    <div class="scroll-area">
+      <ul class="lista" id="lista-calc-guardados"></ul>
+      <div id="empty-calc" class="empty">Los cálculos guardados aparecerán aquí mientras sigues calculando.</div>
+    </div>
+  </div>
+
+  <!-- PANEL TOTAL + BARRA DE NAVEGACIÓN -->
+  <div class="footer-stack">
+    <div class="bottom-panel">
+      <div style="min-width:0; flex:1;">
+        <div class="label" id="footer-label">Total a pagar</div>
+        <div class="val" id="total-pagar">0,00 Bs</div>
+      </div>
+      <div class="footer-actions">
+        <button type="button" id="btn-respaldo" class="btn-footer-mini" style="display:none;">💾 Respaldo</button>
+        <button type="button" id="btn-limpiar" class="btn-limpiar" title="Borrar">🗑️</button>
+      </div>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Secciones de TasCal">
+      <button type="button" class="nav-tab active" data-tab="conversor">
+        <span>💱</span>
+        <span>Conversor</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="bulto">
+        <span>📦</span>
+        <span>Bulto vs Ud.</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="precios">
+        <span>🏷️</span>
+        <span>Precios</span>
+      </button>
+      <button type="button" class="nav-tab" data-tab="calc">
+        <span>🧮</span>
+        <span>Calc.</span>
+      </button>
+    </nav>
   </div>
 </div>
 
 <div id="toast-msg" class="toast-msg"></div>
 
+<!-- MODAL PERSONALIZADO: RESPALDO DE PRECIOS -->
+<div id="modal-respaldo" class="custom-modal-backdrop">
+  <div class="custom-modal">
+    <h3>Respaldo de Precios</h3>
+    <p>Guarda o restaura tus artículos por tienda/marca en formato JSON.</p>
+
+    <div class="row" style="margin-bottom:2px;">
+      <button type="button" id="btn-exportar-json" class="primary">⬇️ Descargar .json</button>
+      <button type="button" id="btn-copiar-json" class="secondary">📋 Copiar</button>
+    </div>
+
+    <div>
+      <label>Pegar respaldo o cargar archivo .json</label>
+      <textarea id="texto-respaldo" placeholder='[{"articulo":"Arroz","precio":1.2,"moneda":"USD"}]'></textarea>
+    </div>
+
+    <div class="row" style="margin-bottom:2px;">
+      <label class="btn-footer-mini" style="flex:1; height:36px; margin:0; cursor:pointer; text-align:center;">
+        📂 Elegir archivo
+        <input type="file" id="archivo-respaldo" accept=".json,application/json" style="display:none;">
+      </label>
+      <button type="button" id="btn-importar-json" class="success" style="flex:1; height:36px;">⬆️ Restaurar</button>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" id="btn-cerrar-respaldo" class="secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERSONALIZADO: TASA MANUAL -->
 <div id="modal-manual" class="custom-modal-backdrop">
   <div class="custom-modal">
     <h3>Actualizar Tasa Manual</h3>
@@ -235,10 +477,67 @@
   </div>
 </div>
 
+<!-- MODAL PERSONALIZADO: AÑADIR / EDITAR ARTÍCULO EN CATÁLOGO -->
+<div id="modal-catalogo" class="custom-modal-backdrop">
+  <div class="custom-modal">
+    <h3 id="modal-cat-titulo">Nuevo Artículo</h3>
+
+    <div>
+      <label>Artículo / Producto</label>
+      <input type="text" id="cat-articulo" placeholder="Ej: Arroz, Aceite, Café" autocomplete="off">
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Marca</label>
+        <input type="text" id="cat-marca" placeholder="Ej: Mary, Polar" autocomplete="off">
+      </div>
+      <div>
+        <label>Lugar / Tienda</label>
+        <input type="text" id="cat-lugar" placeholder="Ej: Central, Bodega" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Tipo</label>
+        <select id="cat-tipo">
+          <option value="UNIDAD">Unidad</option>
+          <option value="BULTO">Bulto</option>
+        </select>
+      </div>
+      <div>
+        <label>Peso (opcional)</label>
+        <input type="text" id="cat-peso" placeholder="Ej: 1 kg, 900 ml" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Precio</label>
+        <input type="text" id="cat-precio" placeholder="0,00" inputmode="decimal" autocomplete="off">
+      </div>
+      <div>
+        <label>Moneda</label>
+        <select id="cat-moneda">
+          <option value="USD">Dólar ($)</option>
+          <option value="VES">Bolívar (Bs)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" id="btn-cancel-cat" class="secondary">Cancelar</button>
+      <button type="button" id="btn-save-cat" class="success">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERSONALIZADO: CONFIRMAR BORRADO -->
 <div id="modal-confirm" class="custom-modal-backdrop">
   <div class="custom-modal">
-    <h3>¿Borrar toda la lista?</h3>
-    <p>Se eliminarán todos los productos calculados hasta el momento.</p>
+    <h3 id="confirm-titulo">¿Borrar toda la lista?</h3>
+    <p id="confirm-texto">Se eliminarán todos los productos calculados hasta el momento.</p>
     <div class="modal-actions">
       <button type="button" id="btn-cancel-clear" class="secondary">Cancelar</button>
       <button type="button" id="btn-confirm-clear" class="danger">Sí, borrar</button>
@@ -246,6 +545,7 @@
   </div>
 </div>
 
+<!-- MODAL ESCÁNER EN VIVO -->
 <div id="scanner-modal" class="scanner-modal">
   <div class="video-wrapper">
     <video id="cam-video" autoplay playsinline muted></video>
@@ -273,8 +573,16 @@
 <script>
   let tasasHistorial = {}; 
   let fechaActual = null;  
-  let items = []; 
+  let items = [];
+  let catalogoPrecios = [];
+  let calculosGuardados = [];
+  let editandoCatalogoIdx = null;
+  let accionConfirmar = null;
+  let tabActiva = 'conversor';
   let ocrWorker = null;
+
+  let exprCalc = '';
+  let ultimoResultadoCalc = 0;
 
   let videoStream = null;
   let scanInterval = null;
@@ -291,13 +599,16 @@
   const elDateLabel = $('date-label');
   const elResultado = $('resultado-unitario');
   const elLista = $('lista-items'), elEmpty = $('empty-msg');
-  const elTotal = $('total-pagar');
+  const elTotal = $('total-pagar'), elFooterLabel = $('footer-label');
+  const btnRespaldo = $('btn-respaldo'), btnLimpiar = $('btn-limpiar');
   const inputPrecio = $('precio'), inputMult = $('multiplicador');
   const selOrigen = $('divisa-origen'), selDestino = $('divisa-destino');
   const btnPrev = $('btn-prev'), btnNext = $('btn-next');
   const toastEl = $('toast-msg');
 
   const modalManual = $('modal-manual');
+  const modalCatalogo = $('modal-catalogo');
+  const modalRespaldo = $('modal-respaldo');
   const modalConfirm = $('modal-confirm');
   const scannerModal = $('scanner-modal');
   const videoEl = $('cam-video');
@@ -310,6 +621,21 @@
 
   const simbolo = div => div === 'VES' ? 'Bs' : div === 'USD' ? '$' : '€';
   const getTasas = () => tasasHistorial[fechaActual] || { USD: 0, EUR: 0 };
+
+  function parseDecimal(val) {
+    if (typeof val === 'number') return val;
+    if (!val) return NaN;
+    const limpio = String(val).trim().replace(/\s+/g, '');
+    if (!limpio) return NaN;
+    if (limpio.includes(',') && limpio.includes('.')) {
+      return parseFloat(
+        limpio.lastIndexOf(',') > limpio.lastIndexOf('.')
+          ? limpio.replace(/\./g, '').replace(',', '.')
+          : limpio.replace(/,/g, '')
+      );
+    }
+    return parseFloat(limpio.replace(',', '.'));
+  }
 
   function formatearNumero(num) {
     if (isNaN(num)) return "0,00";
@@ -325,6 +651,14 @@
     }, duracion);
   }
 
+  function abrirConfirmacion(titulo, texto, callback) {
+    $('confirm-titulo').textContent = titulo;
+    $('confirm-texto').textContent = texto;
+    accionConfirmar = callback;
+    modalConfirm.classList.add('active');
+  }
+
+  // --- 1. PERSISTENCIA ---
   function cargarDatosGuardados() {
     try {
       const guardadoTasas = localStorage.getItem('tasasBCV_historial');
@@ -334,6 +668,16 @@
     try {
       const guardadoItems = localStorage.getItem('tasCal_items');
       if (guardadoItems) items = JSON.parse(guardadoItems);
+    } catch (e) {}
+
+    try {
+      const guardadoCat = localStorage.getItem('tasCal_catalogoPrecios');
+      if (guardadoCat) catalogoPrecios = JSON.parse(guardadoCat);
+    } catch (e) {}
+
+    try {
+      const guardadoCalc = localStorage.getItem('tasCal_calculosGuardados');
+      if (guardadoCalc) calculosGuardados = JSON.parse(guardadoCalc);
     } catch (e) {}
   }
 
@@ -346,6 +690,18 @@
   function guardarItems() {
     try {
       localStorage.setItem('tasCal_items', JSON.stringify(items));
+    } catch (e) {}
+  }
+
+  function guardarCatalogo() {
+    try {
+      localStorage.setItem('tasCal_catalogoPrecios', JSON.stringify(catalogoPrecios));
+    } catch (e) {}
+  }
+
+  function guardarCalculosLista() {
+    try {
+      localStorage.setItem('tasCal_calculosGuardados', JSON.stringify(calculosGuardados));
     } catch (e) {}
   }
 
@@ -362,8 +718,24 @@
         history.pushState({ app: 'tascal' }, '');
         return;
       }
+      if (modalCatalogo.classList.contains('active')) {
+        modalCatalogo.classList.remove('active');
+        history.pushState({ app: 'tascal' }, '');
+        return;
+      }
+      if (modalRespaldo.classList.contains('active')) {
+        modalRespaldo.classList.remove('active');
+        history.pushState({ app: 'tascal' }, '');
+        return;
+      }
       if (modalConfirm.classList.contains('active')) {
         modalConfirm.classList.remove('active');
+        accionConfirmar = null;
+        history.pushState({ app: 'tascal' }, '');
+        return;
+      }
+      if (tabActiva !== 'conversor') {
+        cambiarTab('conversor');
         history.pushState({ app: 'tascal' }, '');
         return;
       }
@@ -378,6 +750,41 @@
     });
   }
 
+  // --- NAVEGACIÓN ENTRE PESTAÑAS ---
+  function cambiarTab(tab) {
+    tabActiva = tab;
+    document.querySelectorAll('.nav-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    $('view-conversor').classList.toggle('active', tab === 'conversor');
+    $('view-bulto').classList.toggle('active', tab === 'bulto');
+    $('view-precios').classList.toggle('active', tab === 'precios');
+    $('view-calc').classList.toggle('active', tab === 'calc');
+
+    btnRespaldo.style.display = tab === 'precios' ? 'inline-flex' : 'none';
+    btnLimpiar.style.display = tab === 'bulto' ? 'none' : 'inline-flex';
+
+    if (tab === 'conversor') {
+      elFooterLabel.textContent = 'Total a pagar';
+      renderizarLista();
+    } else if (tab === 'bulto') {
+      elFooterLabel.textContent = 'Ahorro en bulto';
+      calcularComparacionBulto();
+    } else if (tab === 'precios') {
+      elFooterLabel.textContent = 'Artículos guardados';
+      renderizarCatalogo();
+    } else if (tab === 'calc') {
+      elFooterLabel.textContent = 'Resultado actual';
+      actualizarDisplayCalc();
+      renderizarCalculosGuardados();
+    }
+  }
+
+  document.querySelectorAll('.nav-tab').forEach(btn => {
+    btn.addEventListener('click', () => cambiarTab(btn.dataset.tab));
+  });
+
+  // --- 2. GESTIÓN DE FECHAS Y ESTILOS VISUALES ---
   function getFechaHoy() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -428,6 +835,12 @@
     btnNext.disabled = idx === -1 || idx >= fechas.length - 1;
 
     recalcularPreview();
+    if (tabActiva === 'bulto') calcularComparacionBulto();
+    if (tabActiva === 'precios') renderizarCatalogo();
+    if (tabActiva === 'calc') {
+      actualizarDisplayCalc();
+      renderizarCalculosGuardados();
+    }
     renderizarLista();
   }
 
@@ -443,21 +856,20 @@
     }
   }
 
-  // --- CARGA DINÁMICA SEGURA DE TESSERACT (NO BLOQUEA OFFLINE) ---
+  // --- CARGA DINÁMICA SEGURA DE TESSERACT ---
   function cargarTesseractDinamico() {
     return new Promise((resolve) => {
       if (window.Tesseract) {
         resolve(window.Tesseract);
         return;
       }
-      // Intentar cargar script con un tiempo límite corto (timeout de 3s)
       const script = document.createElement('script');
       script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
       script.async = true;
       
       const timer = setTimeout(() => {
         script.onerror = null;
-        resolve(null); // Si no hay internet, se rechaza silenciosamente sin bloquear
+        resolve(null);
       }, 3000);
 
       script.onload = () => {
@@ -526,6 +938,7 @@
     }
   }
 
+  // --- 4. MODAL TASA MANUAL ---
   function abrirModalManual() {
     const tasasActuales = getTasas();
     $('manual-date').value = fechaActual || getFechaHoy();
@@ -563,7 +976,7 @@
     let nuevoEUR = existente.EUR || 0;
 
     if (modoTasaManual === 'USD' || modoTasaManual === 'BOTH') {
-      const valUsd = parseFloat($('manual-usd').value.replace(',', '.'));
+      const valUsd = parseDecimal($('manual-usd').value);
       if (isNaN(valUsd) || valUsd <= 0) {
         mostrarAviso('Ingresa un monto válido para el Dólar');
         return;
@@ -572,7 +985,7 @@
     }
 
     if (modoTasaManual === 'EUR' || modoTasaManual === 'BOTH') {
-      const valEur = parseFloat($('manual-eur').value.replace(',', '.'));
+      const valEur = parseDecimal($('manual-eur').value);
       if (isNaN(valEur) || valEur <= 0) {
         mostrarAviso('Ingresa un monto válido para el Euro');
         return;
@@ -588,6 +1001,7 @@
     mostrarAviso('✅ Tasa guardada correctamente');
   });
 
+  // --- 5. ESCÁNER EN VIVO ---
   async function prepararWorkerOCR() {
     if (ocrWorker) return ocrWorker;
     const libTesseract = await cargarTesseractDinamico();
@@ -754,20 +1168,26 @@
     }
   });
 
+  // --- 6. CONVERSIÓN Y LISTA ---
   function convertir(monto, origen, destino) {
     const t = getTasas();
     if (origen === destino) return monto;
-    if (origen === 'VES') return destino === 'USD' ? monto / t.USD : monto / t.EUR;
-    if (destino === 'VES') return origen === 'USD' ? monto * t.USD : monto * t.EUR;
-    const enVES = origen === 'USD' ? monto * t.USD : monto * t.EUR;
-    return destino === 'USD' ? enVES / t.USD : enVES / t.EUR;
+    if (origen === 'VES') {
+      if (destino === 'USD') return t.USD ? monto / t.USD : 0;
+      return t.EUR ? monto / t.EUR : 0;
+    }
+    if (destino === 'VES') {
+      return origen === 'USD' ? monto * (t.USD || 0) : monto * (t.EUR || 0);
+    }
+    const enVES = origen === 'USD' ? monto * (t.USD || 0) : monto * (t.EUR || 0);
+    return destino === 'USD' ? (t.USD ? enVES / t.USD : 0) : (t.EUR ? enVES / t.EUR : 0);
   }
 
   function recalcularPreview() {
-    const precio = parseFloat(inputPrecio.value) || 0;
+    const precio = parseDecimal(inputPrecio.value) || 0;
     const mult = parseFloat(inputMult.value) || 1;
     const t = getTasas();
-    if (precio <= 0 || t.USD === 0) { elResultado.textContent = '0,00'; return; }
+    if (precio <= 0 || (t.USD === 0 && t.EUR === 0)) { elResultado.textContent = '0,00'; return; }
     const r = convertir(precio * mult, selOrigen.value, selDestino.value);
     elResultado.textContent = `${formatearNumero(r)} ${simbolo(selDestino.value)}`;
   }
@@ -802,14 +1222,16 @@
     });
 
     if (items.length === 0) {
-      elEmpty.style.display = 'block'; elTotal.textContent = `0,00 ${sim}`;
+      elEmpty.style.display = 'block';
+      if (tabActiva === 'conversor') elTotal.textContent = `0,00 ${sim}`;
     } else {
-      elEmpty.style.display = 'none'; elTotal.textContent = `${formatearNumero(total)} ${sim}`;
+      elEmpty.style.display = 'none';
+      if (tabActiva === 'conversor') elTotal.textContent = `${formatearNumero(total)} ${sim}`;
     }
   }
 
   function agregarItem() {
-    const precio = parseFloat(inputPrecio.value);
+    const precio = parseDecimal(inputPrecio.value);
     const mult = parseFloat(inputMult.value) || 1;
     const t = getTasas();
     
@@ -829,7 +1251,7 @@
     
     items.push({ precio, mult, origen: selOrigen.value });
     guardarItems();
-    setTimeout(() => { document.querySelector('.scroll-area').scrollTop = document.querySelector('.scroll-area').scrollHeight; }, 50);
+    setTimeout(() => { document.querySelector('#view-conversor .scroll-area').scrollTop = document.querySelector('#view-conversor .scroll-area').scrollHeight; }, 50);
 
     inputPrecio.value = ''; inputMult.value = '1';
     elResultado.textContent = '0,00';
@@ -837,6 +1259,610 @@
     inputPrecio.focus();
   }
 
+  // --- 7. COMPARADOR BULTO VS UNIDAD ---
+  function obtenerDatosComparacion() {
+    const pUnit = parseDecimal($('comp-precio-unit').value);
+    const pBulto = parseDecimal($('comp-precio-bulto').value);
+    const cant = parseFloat($('comp-cant-bulto').value);
+    const moneda = $('comp-moneda').value;
+    const nombre = $('comp-nombre').value.trim();
+
+    if (isNaN(pUnit) || pUnit <= 0 || isNaN(pBulto) || pBulto <= 0 || isNaN(cant) || cant < 1) {
+      return null;
+    }
+
+    const costoComprarSuelto = pUnit * cant;
+    const unitarioEnBulto = pBulto / cant;
+    const ahorroEnMoneda = costoComprarSuelto - pBulto;
+    const porcentaje = costoComprarSuelto > 0 ? (ahorroEnMoneda / costoComprarSuelto) * 100 : 0;
+
+    const tasaUSD = getTasas().USD || 0;
+    let ahorroUSD = 0;
+    let ahorroVES = 0;
+
+    if (moneda === 'USD') {
+      ahorroUSD = ahorroEnMoneda;
+      ahorroVES = tasaUSD > 0 ? ahorroEnMoneda * tasaUSD : 0;
+    } else {
+      ahorroVES = ahorroEnMoneda;
+      ahorroUSD = tasaUSD > 0 ? ahorroEnMoneda / tasaUSD : 0;
+    }
+
+    return {
+      pUnit, pBulto, cant, moneda, nombre,
+      unitarioEnBulto, ahorroEnMoneda, porcentaje,
+      ahorroUSD, ahorroVES, tasaUSD
+    };
+  }
+
+  function calcularComparacionBulto() {
+    const data = obtenerDatosComparacion();
+    const box = $('comp-resultado');
+
+    if (!data) {
+      box.className = 'verdict-box neutral';
+      box.innerHTML = `
+        <div class="verdict-header">Ingresa unidad, bulto y cantidad</div>
+        <div style="font-size:12px; color:var(--text-muted);">Verás el precio unitario del bulto y tu ahorro real en Bs y $.</div>
+      `;
+      if (tabActiva === 'bulto') elTotal.textContent = '0,00 Bs / $0,00';
+      return;
+    }
+
+    const sim = simbolo(data.moneda);
+    const conviene = data.ahorroEnMoneda > 0.0001;
+    const igual = Math.abs(data.ahorroEnMoneda) <= 0.0001;
+
+    let tituloVeredicto = '';
+    let descVeredicto = '';
+
+    if (igual) {
+      box.className = 'verdict-box neutral';
+      tituloVeredicto = '⚖️ Cuesta exactamente lo mismo';
+      descVeredicto = `Cada unidad en el bulto sale igual (${sim}${formatearNumero(data.unitarioEnBulto)}).`;
+    } else if (conviene) {
+      box.className = 'verdict-box good';
+      tituloVeredicto = `✅ Vale la pena el bulto (${Math.abs(data.porcentaje).toFixed(1)}% menos)`;
+      descVeredicto = `Cada unidad baja de ${sim}${formatearNumero(data.pUnit)} a ${sim}${formatearNumero(data.unitarioEnBulto)}.`;
+    } else {
+      box.className = 'verdict-box bad';
+      tituloVeredicto = `⚠️ No conviene el bulto (${Math.abs(data.porcentaje).toFixed(1)}% más caro)`;
+      descVeredicto = `Cada unidad sube de ${sim}${formatearNumero(data.pUnit)} a ${sim}${formatearNumero(data.unitarioEnBulto)}.`;
+    }
+
+    const avisoTasa = data.tasaUSD > 0
+      ? `Tasa USD usada: ${formatearNumero(data.tasaUSD)} Bs`
+      : `Sin tasa USD cargada para convertir`;
+
+    box.innerHTML = `
+      <div class="verdict-header">${tituloVeredicto}</div>
+      <div style="font-size:12px; color:var(--text);">${descVeredicto}</div>
+      <div class="comp-grid">
+        <div class="comp-stat">
+          <span>Ahorro en Bolívares</span>
+          <strong>${data.ahorroVES < 0 ? '-' : ''}${formatearNumero(Math.abs(data.ahorroVES))} Bs</strong>
+          <small>${avisoTasa}</small>
+        </div>
+        <div class="comp-stat">
+          <span>Ahorro en Dólares</span>
+          <strong>${data.ahorroUSD < 0 ? '-' : ''}$${formatearNumero(Math.abs(data.ahorroUSD))}</strong>
+          <small>Por ${data.cant} und. (${sim}${formatearNumero(data.ahorroEnMoneda)})</small>
+        </div>
+      </div>
+    `;
+
+    if (tabActiva === 'bulto') {
+      const signo = data.ahorroEnMoneda < 0 ? '-' : '';
+      elTotal.textContent = `${signo}${formatearNumero(Math.abs(data.ahorroVES))} Bs · ${signo}$${formatearNumero(Math.abs(data.ahorroUSD))}`;
+    }
+  }
+
+  ['comp-precio-unit', 'comp-precio-bulto', 'comp-cant-bulto', 'comp-moneda', 'comp-nombre'].forEach(id => {
+    $(id).addEventListener('input', calcularComparacionBulto);
+    $(id).addEventListener('change', calcularComparacionBulto);
+  });
+
+  $('btn-comp-limpiar').addEventListener('click', () => {
+    $('comp-precio-unit').value = '';
+    $('comp-precio-bulto').value = '';
+    $('comp-cant-bulto').value = '';
+    $('comp-nombre').value = '';
+    calcularComparacionBulto();
+  });
+
+  $('btn-comp-guardar').addEventListener('click', () => {
+    const data = obtenerDatosComparacion();
+    if (!data) {
+      mostrarAviso('⚠️ Completa precio unitario, bulto y cantidad');
+      return;
+    }
+    catalogoPrecios.unshift({
+      articulo: data.nombre || `Bulto (${data.cant} und.)`,
+      marca: '',
+      lugar: '',
+      tipo: 'BULTO',
+      peso: `${data.cant} und.`,
+      precio: data.pBulto,
+      moneda: data.moneda
+    });
+    guardarCatalogo();
+    mostrarAviso('💾 Bulto guardado en Precios');
+    cambiarTab('precios');
+  });
+
+  // --- 8. CATÁLOGO DE PRECIOS POR LUGAR / TIENDA + RESPALDO ---
+  function abrirModalCatalogo(idx = null) {
+    editandoCatalogoIdx = idx;
+    if (idx !== null && catalogoPrecios[idx]) {
+      const item = catalogoPrecios[idx];
+      $('modal-cat-titulo').textContent = 'Editar Artículo';
+      $('cat-articulo').value = item.articulo || '';
+      $('cat-marca').value = item.marca || '';
+      $('cat-lugar').value = item.lugar || '';
+      $('cat-tipo').value = item.tipo || 'UNIDAD';
+      $('cat-peso').value = item.peso || '';
+      $('cat-precio').value = item.precio || '';
+      $('cat-moneda').value = item.moneda || 'USD';
+    } else {
+      $('modal-cat-titulo').textContent = 'Nuevo Artículo';
+      $('cat-articulo').value = '';
+      $('cat-marca').value = '';
+      $('cat-lugar').value = '';
+      $('cat-tipo').value = 'UNIDAD';
+      $('cat-peso').value = '';
+      $('cat-precio').value = '';
+      $('cat-moneda').value = 'USD';
+    }
+    modalCatalogo.classList.add('active');
+    setTimeout(() => $('cat-articulo').focus(), 100);
+  }
+
+  $('btn-nuevo-precio').addEventListener('click', () => abrirModalCatalogo(null));
+  $('btn-cancel-cat').addEventListener('click', () => modalCatalogo.classList.remove('active'));
+
+  $('btn-save-cat').addEventListener('click', () => {
+    const articulo = $('cat-articulo').value.trim();
+    const marca = $('cat-marca').value.trim();
+    const lugar = $('cat-lugar').value.trim();
+    const tipo = $('cat-tipo').value;
+    const peso = $('cat-peso').value.trim();
+    const precio = parseDecimal($('cat-precio').value);
+    const moneda = $('cat-moneda').value;
+
+    if (!articulo) {
+      mostrarAviso('⚠️ Escribe el nombre del artículo');
+      $('cat-articulo').focus();
+      return;
+    }
+    if (isNaN(precio) || precio <= 0) {
+      mostrarAviso('⚠️ Ingresa un precio válido');
+      $('cat-precio').focus();
+      return;
+    }
+
+    const registro = { articulo, marca, lugar, tipo, peso, precio, moneda };
+
+    if (editandoCatalogoIdx !== null && catalogoPrecios[editandoCatalogoIdx]) {
+      catalogoPrecios[editandoCatalogoIdx] = registro;
+      mostrarAviso('✏️ Artículo actualizado');
+    } else {
+      catalogoPrecios.unshift(registro);
+      mostrarAviso('✅ Artículo guardado');
+    }
+
+    guardarCatalogo();
+    modalCatalogo.classList.remove('active');
+    renderizarCatalogo();
+  });
+
+  function enviarAConversor(item) {
+    if (!item || !item.precio) return;
+    selOrigen.value = item.moneda === 'VES' ? 'VES' : 'USD';
+    if (selOrigen.value === selDestino.value) {
+      selDestino.value = selOrigen.value === 'USD' ? 'VES' : 'USD';
+    }
+    inputPrecio.value = String(item.precio);
+    inputMult.value = '1';
+    recalcularPreview();
+    cambiarTab('conversor');
+    mostrarAviso(`💱 Cargado: ${item.articulo}`);
+  }
+
+  function renderizarCatalogo() {
+    const filtro = ($('buscar-catalogo').value || '').trim().toLowerCase();
+    const criterio = $('orden-catalogo').value || 'recientes';
+    const listaEl = $('lista-catalogo');
+    const emptyEl = $('empty-catalogo');
+    const tasaUSD = getTasas().USD || 0;
+
+    listaEl.innerHTML = '';
+
+    let filtrados = catalogoPrecios
+      .map((item, idx) => ({ item, idx }))
+      .filter(({ item }) => {
+        if (!filtro) return true;
+        if (criterio === 'producto') {
+          return (item.articulo || '').toLowerCase().includes(filtro);
+        }
+        if (criterio === 'marca') {
+          return (item.marca || '').toLowerCase().includes(filtro);
+        }
+        const texto = `${item.articulo} ${item.marca} ${item.lugar} ${item.peso} ${item.tipo}`.toLowerCase();
+        return texto.includes(filtro);
+      });
+
+    if (criterio === 'producto') {
+      filtrados.sort((a, b) => (a.item.articulo || '').localeCompare(b.item.articulo || '', 'es', { sensitivity: 'base' }));
+    } else if (criterio === 'marca') {
+      filtrados.sort((a, b) => {
+        const mA = a.item.marca || 'zzz';
+        const mB = b.item.marca || 'zzz';
+        const cmp = mA.localeCompare(mB, 'es', { sensitivity: 'base' });
+        return cmp !== 0 ? cmp : (a.item.articulo || '').localeCompare(b.item.articulo || '', 'es', { sensitivity: 'base' });
+      });
+    }
+
+    if (tabActiva === 'precios') {
+      elTotal.textContent = `${catalogoPrecios.length} ${catalogoPrecios.length === 1 ? 'artículo' : 'artículos'}`;
+    }
+
+    if (filtrados.length === 0) {
+      emptyEl.style.display = 'block';
+      emptyEl.textContent = catalogoPrecios.length === 0
+        ? 'No hay artículos guardados aún. Toca "+ Nuevo Artículo" para registrar precios por tienda.'
+        : 'No hay coincidencias con el filtro.';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+
+    filtrados.forEach(({ item, idx }) => {
+      const badgeClass = item.tipo === 'BULTO' ? 'badge-bulto' : 'badge-unidad';
+      const badgeText = item.tipo === 'BULTO' ? 'Bulto' : 'Unidad';
+      const sim = simbolo(item.moneda);
+
+      let equivTexto = '';
+      if (tasaUSD > 0) {
+        if (item.moneda === 'USD') {
+          equivTexto = `${formatearNumero(item.precio * tasaUSD)} Bs`;
+        } else {
+          equivTexto = `$${formatearNumero(item.precio / tasaUSD)}`;
+        }
+      }
+
+      const metaPartes = [];
+      if (item.lugar) metaPartes.push(`📍 ${item.lugar}`);
+      if (item.marca) metaPartes.push(`🏷️ ${item.marca}`);
+      if (item.peso) metaPartes.push(`⚖️ ${item.peso}`);
+      const metaStr = metaPartes.length > 0 ? metaPartes.join(' · ') : 'Sin lugar ni marca';
+
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div class="info">
+          <div><strong>${item.articulo}</strong> <span class="badge ${badgeClass}">${badgeText}</span></div>
+          <div class="detalle">${metaStr}</div>
+        </div>
+        <div style="text-align:right; flex-shrink:0;">
+          <div class="valor">${sim}${formatearNumero(item.precio)}</div>
+          <div class="detalle" style="margin-top:0;">${equivTexto}</div>
+        </div>
+        <div class="item-actions">
+          <button class="conv-btn" data-conv="${idx}" title="Pasar al conversor">⇄</button>
+          <button class="edit-btn" data-edit="${idx}" title="Editar">✎</button>
+          <button class="del" data-del="${idx}" title="Borrar">×</button>
+        </div>
+      `;
+      listaEl.appendChild(li);
+    });
+
+    listaEl.querySelectorAll('.conv-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reg = catalogoPrecios[+btn.dataset.conv];
+        if (reg) enviarAConversor(reg);
+      });
+    });
+
+    listaEl.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => abrirModalCatalogo(+btn.dataset.edit));
+    });
+
+    listaEl.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = +btn.dataset.del;
+        const reg = catalogoPrecios[i];
+        if (!reg) return;
+        abrirConfirmacion(
+          '¿Borrar este artículo?',
+          `Se eliminará "${reg.articulo}" de la lista de precios.`,
+          () => {
+            catalogoPrecios.splice(i, 1);
+            guardarCatalogo();
+            renderizarCatalogo();
+            mostrarAviso('🗑️ Artículo eliminado');
+          }
+        );
+      });
+    });
+  }
+
+  $('buscar-catalogo').addEventListener('input', renderizarCatalogo);
+  $('orden-catalogo').addEventListener('change', renderizarCatalogo);
+
+  // --- RESPALDO DE PRECIOS (EXPORTAR / IMPORTAR) ---
+  function generarPayloadRespaldo() {
+    return JSON.stringify({
+      app: 'TasCal',
+      version: 1,
+      fecha: getFechaHoy(),
+      catalogoPrecios
+    }, null, 2);
+  }
+
+  btnRespaldo.addEventListener('click', () => {
+    $('texto-respaldo').value = generarPayloadRespaldo();
+    $('archivo-respaldo').value = '';
+    modalRespaldo.classList.add('active');
+  });
+
+  $('btn-cerrar-respaldo').addEventListener('click', () => modalRespaldo.classList.remove('active'));
+
+  $('btn-exportar-json').addEventListener('click', () => {
+    const jsonStr = generarPayloadRespaldo();
+    $('texto-respaldo').value = jsonStr;
+    try {
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tascal-precios-${getFechaHoy()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      mostrarAviso('⬇️ Respaldo descargado');
+    } catch (e) {
+      mostrarAviso('Copia el texto del respaldo');
+    }
+  });
+
+  $('btn-copiar-json').addEventListener('click', async () => {
+    const texto = $('texto-respaldo').value.trim() || generarPayloadRespaldo();
+    try {
+      await navigator.clipboard.writeText(texto);
+      mostrarAviso('📋 Respaldo copiado');
+    } catch (e) {
+      $('texto-respaldo').select();
+      document.execCommand('copy');
+      mostrarAviso('📋 Respaldo copiado');
+    }
+  });
+
+  $('archivo-respaldo').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      $('texto-respaldo').value = String(reader.result || '');
+      mostrarAviso('📂 Archivo cargado, toca Restaurar');
+    };
+    reader.readAsText(file);
+  });
+
+  $('btn-importar-json').addEventListener('click', () => {
+    const raw = $('texto-respaldo').value.trim();
+    if (!raw) {
+      mostrarAviso('⚠️ Pega o carga un respaldo válido');
+      return;
+    }
+
+    let parseado = null;
+    try {
+      parseado = JSON.parse(raw);
+    } catch (e) {
+      mostrarAviso('❌ Formato JSON inválido');
+      return;
+    }
+
+    const listaNueva = Array.isArray(parseado)
+      ? parseado
+      : (parseado && Array.isArray(parseado.catalogoPrecios) ? parseado.catalogoPrecios : null);
+
+    if (!listaNueva) {
+      mostrarAviso('❌ No se encontró una lista de precios válida');
+      return;
+    }
+
+    const normalizados = listaNueva
+      .filter(x => x && typeof x === 'object' && x.articulo)
+      .map(x => ({
+        articulo: String(x.articulo).trim(),
+        marca: String(x.marca || '').trim(),
+        lugar: String(x.lugar || '').trim(),
+        tipo: x.tipo === 'BULTO' ? 'BULTO' : 'UNIDAD',
+        peso: String(x.peso || '').trim(),
+        precio: parseDecimal(x.precio) || 0,
+        moneda: x.moneda === 'VES' ? 'VES' : 'USD'
+      }))
+      .filter(x => x.articulo && x.precio > 0);
+
+    if (normalizados.length === 0) {
+      mostrarAviso('⚠️ El respaldo no contiene artículos válidos');
+      return;
+    }
+
+    abrirConfirmacion(
+      '¿Restaurar respaldo de precios?',
+      `Se cargarán ${normalizados.length} artículos en tu catálogo actual.`,
+      () => {
+        catalogoPrecios = normalizados;
+        guardarCatalogo();
+        modalRespaldo.classList.remove('active');
+        renderizarCatalogo();
+        mostrarAviso(`✅ ${normalizados.length} artículos restaurados`);
+      }
+    );
+  });
+
+  // --- 9. CALCULADORA CON CÁLCULOS GUARDADOS POR NOMBRE ---
+  function evaluarExpresionCalc(exp) {
+    if (!exp || !exp.trim()) return { ok: false, valor: 0 };
+    const limpia = exp.replace(/,/g, '.').replace(/[^0-9+\-*/().\s]/g, '');
+    if (!limpia.trim()) return { ok: false, valor: 0 };
+    try {
+      const fn = new Function(`"use strict"; return (${limpia});`);
+      const res = fn();
+      if (typeof res === 'number' && isFinite(res)) {
+        return { ok: true, valor: res };
+      }
+      return { ok: false, valor: 0 };
+    } catch (e) {
+      return { ok: false, valor: 0 };
+    }
+  }
+
+  function actualizarDisplayCalc() {
+    $('calc-expr').textContent = exprCalc || '0';
+    const evalRes = evaluarExpresionCalc(exprCalc);
+    if (evalRes.ok) {
+      ultimoResultadoCalc = evalRes.valor;
+    }
+    $('calc-res').textContent = formatearNumero(ultimoResultadoCalc);
+    if (tabActiva === 'calc') {
+      const tasaUSD = getTasas().USD || 0;
+      elTotal.textContent = tasaUSD > 0
+        ? `${formatearNumero(ultimoResultadoCalc)} · $${formatearNumero(ultimoResultadoCalc / tasaUSD)}`
+        : formatearNumero(ultimoResultadoCalc);
+    }
+  }
+
+  function pulsarTeclaCalc(k) {
+    if (k === 'C') {
+      exprCalc = '';
+      ultimoResultadoCalc = 0;
+    } else if (k === 'DEL') {
+      exprCalc = exprCalc.slice(0, -1);
+      const ev = evaluarExpresionCalc(exprCalc);
+      if (ev.ok) ultimoResultadoCalc = ev.valor;
+      else if (!exprCalc) ultimoResultadoCalc = 0;
+    } else if (k === '=') {
+      const ev = evaluarExpresionCalc(exprCalc);
+      if (ev.ok) {
+        ultimoResultadoCalc = ev.valor;
+        exprCalc = String(Number(ev.valor.toFixed(6))).replace('.', ',');
+      } else {
+        mostrarAviso('⚠️ Revisa la operación');
+      }
+    } else {
+      const esOp = ['+', '-', '*', '/'].includes(k);
+      if (esOp && !exprCalc) {
+        if (ultimoResultadoCalc !== 0) {
+          exprCalc = String(Number(ultimoResultadoCalc.toFixed(6))).replace('.', ',') + k;
+        } else if (k === '-') {
+          exprCalc = '-';
+        }
+      } else {
+        const ultimoChar = exprCalc.slice(-1);
+        if (esOp && ['+', '-', '*', '/'].includes(ultimoChar)) {
+          exprCalc = exprCalc.slice(0, -1) + k;
+        } else {
+          exprCalc += k;
+        }
+      }
+    }
+    actualizarDisplayCalc();
+  }
+
+  document.querySelectorAll('.calc-key').forEach(btn => {
+    btn.addEventListener('click', () => pulsarTeclaCalc(btn.dataset.k));
+  });
+
+  $('btn-guardar-calc').addEventListener('click', () => {
+    const ev = evaluarExpresionCalc(exprCalc);
+    const valorGuardar = ev.ok ? ev.valor : ultimoResultadoCalc;
+    if (isNaN(valorGuardar)) {
+      mostrarAviso('⚠️ No hay un resultado válido para guardar');
+      return;
+    }
+    const nombreIngresado = $('calc-nombre').value.trim();
+    const nombreFinal = nombreIngresado || `Cálculo #${calculosGuardados.length + 1}`;
+    const ahora = new Date();
+    const horaStr = `${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`;
+
+    calculosGuardados.unshift({
+      nombre: nombreFinal,
+      expresion: exprCalc || formatearNumero(valorGuardar),
+      valor: valorGuardar,
+      hora: horaStr
+    });
+    guardarCalculosLista();
+    $('calc-nombre').value = '';
+    renderizarCalculosGuardados();
+    mostrarAviso(`💾 "${nombreFinal}" guardado`);
+  });
+
+  function renderizarCalculosGuardados() {
+    const listaEl = $('lista-calc-guardados');
+    const emptyEl = $('empty-calc');
+    const tasaUSD = getTasas().USD || 0;
+    listaEl.innerHTML = '';
+
+    if (calculosGuardados.length === 0) {
+      emptyEl.style.display = 'block';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    calculosGuardados.forEach((c, i) => {
+      const equiv = tasaUSD > 0 ? ` · $${formatearNumero(c.valor / tasaUSD)}` : '';
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div class="info">
+          <div><strong>${c.nombre}</strong></div>
+          <div class="detalle">${c.expresion} (${c.hora || ''})</div>
+        </div>
+        <div style="text-align:right; flex-shrink:0;">
+          <div class="valor">${formatearNumero(c.valor)}</div>
+          <div class="detalle" style="margin-top:0;">${equiv.replace(/^ · /, '')}</div>
+        </div>
+        <div class="item-actions">
+          <button class="conv-btn" data-use="${i}" title="Usar resultado">↩</button>
+          <button class="del" data-delc="${i}" title="Borrar">×</button>
+        </div>
+      `;
+      listaEl.appendChild(li);
+    });
+
+    listaEl.querySelectorAll('[data-use]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reg = calculosGuardados[+btn.dataset.use];
+        if (!reg) return;
+        ultimoResultadoCalc = reg.valor;
+        exprCalc = String(Number(reg.valor.toFixed(6))).replace('.', ',');
+        actualizarDisplayCalc();
+        mostrarAviso(`↩ Cargado: ${reg.nombre}`);
+      });
+    });
+
+    listaEl.querySelectorAll('[data-delc]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = +btn.dataset.delc;
+        const reg = calculosGuardados[i];
+        if (!reg) return;
+        abrirConfirmacion(
+          '¿Borrar cálculo guardado?',
+          `Se eliminará "${reg.nombre}".`,
+          () => {
+            calculosGuardados.splice(i, 1);
+            guardarCalculosLista();
+            renderizarCalculosGuardados();
+            mostrarAviso('🗑️ Cálculo eliminado');
+          }
+        );
+      });
+    });
+  }
+
+  // --- 10. EVENTOS Y CONFIRMACIONES ---
   $('btn-actualizar').addEventListener('click', () => obtenerTasaAPI(false));
   btnPrev.addEventListener('click', () => navegarFecha(-1));
   btnNext.addEventListener('click', () => navegarFecha(1));
@@ -858,24 +1884,71 @@
     cerrarEscaner();
   });
 
-  $('btn-limpiar').addEventListener('click', () => {
+  btnLimpiar.addEventListener('click', () => {
+    if (tabActiva === 'precios') {
+      if (catalogoPrecios.length === 0) {
+        mostrarAviso('El catálogo ya está vacío');
+        return;
+      }
+      abrirConfirmacion(
+        '¿Borrar todos los precios guardados?',
+        'Se eliminarán todos los artículos registrados por tienda.',
+        () => {
+          catalogoPrecios = [];
+          guardarCatalogo();
+          renderizarCatalogo();
+          mostrarAviso('🗑️ Catálogo borrado');
+        }
+      );
+      return;
+    }
+
+    if (tabActiva === 'calc') {
+      if (calculosGuardados.length === 0) {
+        mostrarAviso('No hay cálculos guardados');
+        return;
+      }
+      abrirConfirmacion(
+        '¿Borrar todos los cálculos guardados?',
+        'Se eliminará todo el historial de cálculos con nombre.',
+        () => {
+          calculosGuardados = [];
+          guardarCalculosLista();
+          renderizarCalculosGuardados();
+          mostrarAviso('🗑️ Cálculos borrados');
+        }
+      );
+      return;
+    }
+
     if (items.length === 0) {
       mostrarAviso('La lista ya está vacía');
       return;
     }
-    modalConfirm.classList.add('active');
+    abrirConfirmacion(
+      '¿Borrar toda la lista?',
+      'Se eliminarán todos los productos calculados hasta el momento.',
+      () => {
+        items = [];
+        guardarItems();
+        renderizarLista();
+        mostrarAviso('🗑️ Lista borrada');
+      }
+    );
   });
 
-  $('btn-cancel-clear').addEventListener('click', () => modalConfirm.classList.remove('active'));
-  $('btn-confirm-clear').addEventListener('click', () => {
-    items = [];
-    guardarItems();
-    renderizarLista();
+  $('btn-cancel-clear').addEventListener('click', () => {
     modalConfirm.classList.remove('active');
-    mostrarAviso('🗑️ Lista borrada');
+    accionConfirmar = null;
   });
 
-  // --- ARRANQUE 100% OFFLINE-FIRST ---
+  $('btn-confirm-clear').addEventListener('click', () => {
+    if (typeof accionConfirmar === 'function') accionConfirmar();
+    modalConfirm.classList.remove('active');
+    accionConfirmar = null;
+  });
+
+  // --- 11. ARRANQUE 100% OFFLINE-FIRST ---
   iniciarProteccionAtras();
   cargarDatosGuardados();
 
@@ -888,7 +1961,6 @@
     renderizarLista();
   }
 
-  // Petición silenciosa de fondo (si no hay red, no afecta en nada y abre al instante)
   obtenerTasaAPI(true);
 </script>
 <script>
