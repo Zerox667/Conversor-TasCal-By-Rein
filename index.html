@@ -175,29 +175,50 @@
   }
   .scanner-modal.active { display: flex; }
 
+  .scanner-mode-tabs {
+    display: flex; gap: 4px; padding: 8px 10px 0 10px; background: var(--panel);
+    flex-shrink: 0;
+  }
+  .scanner-mode-tab {
+    flex: 1; height: 34px; font-size: 12px; font-weight: 700;
+    background: var(--input-bg); color: var(--text-muted);
+    border: 1px solid var(--border); border-radius: 8px 8px 0 0;
+  }
+  .scanner-mode-tab.active {
+    background: var(--primary); color: #fff; border-color: var(--primary);
+  }
+
   .video-wrapper {
     position: relative;
-    height: 46dvh;
-    min-height: 230px;
-    max-height: 52dvh;
+    height: 42dvh;
+    min-height: 220px;
+    max-height: 48dvh;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    background: #000;
+    touch-action: none;
   }
-  video#cam-video { width: 100%; height: 100%; object-fit: cover; }
-  
+  video#cam-video, img#photo-preview {
+    width: 100%; height: 100%; object-fit: contain;
+    transform-origin: center center;
+    will-change: transform;
+  }
+  video#cam-video { object-fit: cover; }
+  img#photo-preview { display: none; }
+
   .scan-overlay {
     position: absolute; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.28);
     pointer-events: none;
   }
   .scan-box {
-    width: 82%; max-width: 320px; height: 68px;
+    width: 78%; max-width: 300px; height: 72px;
     border: 2.5px solid #10b981; border-radius: 10px;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.42);
     background: transparent;
     position: relative;
   }
@@ -208,32 +229,74 @@
   }
 
   .scanner-controls {
-    background: var(--panel); padding: 10px 12px;
+    background: var(--panel); padding: 8px 12px;
     border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-    display: flex; flex-direction: column; gap: 7px; z-index: 10; flex-shrink: 0;
+    display: flex; flex-direction: column; gap: 6px; z-index: 10; flex-shrink: 0;
   }
   .zoom-container {
     display: flex; align-items: center; gap: 8px; padding: 0 2px;
   }
-  .zoom-container span { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .zoom-container span { font-size: 11px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
   .zoom-slider { flex: 1; accent-color: var(--primary); height: 6px; }
 
   .live-readout {
     background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px;
-    padding: 5px 8px; text-align: center;
+    padding: 6px 8px; text-align: center;
   }
-  .live-readout span { font-size: 11px; color: var(--text-muted); display: block; }
-  .live-readout strong { font-size: 21px; color: var(--success); letter-spacing: 0.4px; }
-  .scanner-btns { display: flex; gap: 8px; }
+  .live-readout > .scan-status-line {
+    font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;
+  }
+  .scan-price-row {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .scan-cur-group {
+    display: flex; flex-direction: column; gap: 3px; flex-shrink: 0;
+  }
+  .scan-cur-label {
+    font-size: 9px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.3px; text-align: center;
+  }
+  .scan-cur-btns { display: flex; gap: 2px; }
+  .scan-cur-btn {
+    width: 32px; height: 28px; padding: 0; font-size: 11px; font-weight: 800;
+    background: var(--panel); color: var(--text-muted);
+    border: 1px solid var(--border); border-radius: 6px;
+  }
+  .scan-cur-btn.active {
+    background: rgba(59, 130, 246, 0.25); color: #93c5fd;
+    border-color: var(--primary);
+  }
+  .scan-cur-btn:disabled { opacity: 0.25; pointer-events: none; }
+  .scan-price-main { flex: 1; min-width: 0; text-align: center; }
+  .scan-price-main strong {
+    display: block; font-size: 22px; font-weight: 800; color: var(--success);
+    letter-spacing: 0.3px; line-height: 1.15;
+  }
+  .scan-converted {
+    display: block; font-size: 13px; font-weight: 700; color: #60a5fa;
+    margin-top: 2px; min-height: 18px;
+  }
+  .scanner-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .scanner-btns button { flex: 1; min-width: 0; font-size: 13px; }
+
+  .photo-upload-row {
+    display: none; gap: 6px; align-items: center;
+  }
+  .photo-upload-row.visible { display: flex; }
+  .photo-upload-row label {
+    flex: 1; height: 36px; margin: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px;
+    font-size: 13px; font-weight: 700; color: var(--text); cursor: pointer;
+  }
 
   .scan-history-panel {
     flex: 1;
     background: var(--bg);
-    padding: 10px 12px 14px 12px;
+    padding: 8px 12px 12px 12px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
   .scan-history-title {
     font-size: 11px;
@@ -246,18 +309,18 @@
   .scan-history-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     justify-content: center;
   }
   .scan-chip {
-    min-width: 64px;
-    height: 38px;
-    padding: 0 12px;
+    min-width: 70px;
+    height: 36px;
+    padding: 0 10px;
     border-radius: 8px;
     background: var(--panel);
     color: var(--text);
     border: 1px solid var(--border);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
   }
   .scan-chip.selected {
@@ -306,7 +369,7 @@
         </div>
         <div class="resultado-box" id="resultado-unitario">0,00</div>
         <div class="row" style="margin-bottom:0;">
-          <button id="btn-foto" class="secondary">📷 Escanear en Vivo</button>
+          <button id="btn-foto" class="secondary">📷 Escanear / Foto</button>
           <button id="btn-agregar" class="success">➕ Añadir</button>
         </div>
       </div>
@@ -604,35 +667,71 @@
   </div>
 </div>
 
-<!-- MODAL ESCÁNER EN VIVO -->
+<!-- MODAL ESCÁNER: CÁMARA + SUBIR FOTO -->
 <div id="scanner-modal" class="scanner-modal">
-  <div class="video-wrapper">
+  <div class="scanner-mode-tabs">
+    <button type="button" class="scanner-mode-tab active" data-mode="live">📷 Cámara</button>
+    <button type="button" class="scanner-mode-tab" data-mode="photo">🖼️ Subir foto</button>
+  </div>
+
+  <div class="video-wrapper" id="scan-viewport">
     <video id="cam-video" autoplay playsinline muted></video>
+    <img id="photo-preview" alt="Foto subida">
     <div class="scan-overlay">
-      <div class="scan-hint">Mantén el precio dentro del recuadro</div>
+      <div class="scan-hint" id="scan-hint">Mantén el precio dentro del recuadro</div>
       <div id="scan-box" class="scan-box"></div>
     </div>
   </div>
 
   <div class="scanner-controls">
+    <div class="photo-upload-row" id="photo-upload-row">
+      <label for="photo-file-input">📂 Elegir imagen de la galería</label>
+      <input type="file" id="photo-file-input" accept="image/*" style="display:none;">
+    </div>
+
     <div class="zoom-container" id="zoom-control-wrapper" style="display:none;">
       <span>🔍 Zoom</span>
-      <input type="range" id="zoom-slider" class="zoom-slider" min="1" max="5" step="0.1" value="1">
+      <input type="range" id="zoom-slider" class="zoom-slider" min="1" max="8" step="0.1" value="1">
     </div>
+
     <div class="live-readout">
-      <span id="scan-status">Apunta al número...</span>
-      <strong id="live-number">--</strong>
+      <span id="scan-status" class="scan-status-line">Apunta al número...</span>
+      <div class="scan-price-row">
+        <div class="scan-cur-group">
+          <span class="scan-cur-label">Precio en</span>
+          <div class="scan-cur-btns" id="scan-origen-btns">
+            <button type="button" class="scan-cur-btn active" data-cur="VES">Bs</button>
+            <button type="button" class="scan-cur-btn" data-cur="USD">$</button>
+            <button type="button" class="scan-cur-btn" data-cur="EUR">€</button>
+          </div>
+        </div>
+        <div class="scan-price-main">
+          <strong id="live-number">--</strong>
+          <span id="scan-converted" class="scan-converted"></span>
+        </div>
+        <div class="scan-cur-group">
+          <span class="scan-cur-label">Convertir a</span>
+          <div class="scan-cur-btns" id="scan-destino-btns">
+            <button type="button" class="scan-cur-btn" data-cur="VES">Bs</button>
+            <button type="button" class="scan-cur-btn active" data-cur="USD">$</button>
+            <button type="button" class="scan-cur-btn" data-cur="EUR">€</button>
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="scanner-btns">
-      <button id="btn-cancel-scan" class="secondary">Cerrar</button>
-      <button id="btn-confirm-scan" class="success" disabled>✅ Usar este precio</button>
+      <button type="button" id="btn-cancel-scan" class="secondary">Cerrar</button>
+      <button type="button" id="btn-detect-zone" class="primary" style="display:none;">🔎 Detectar zona</button>
+      <button type="button" id="btn-detect-all" class="primary" style="display:none;">📋 Todos los precios</button>
+      <button type="button" id="btn-confirm-scan" class="success" disabled>✅ Usar este precio</button>
     </div>
   </div>
 
   <div class="scan-history-panel">
-    <div class="scan-history-title">Historial de precios detectados a escoger</div>
+    <div class="scan-history-title">Precios detectados (toca para seleccionar)</div>
     <div id="scan-history-chips" class="scan-history-chips"></div>
-    <div id="scan-history-empty" class="scan-history-empty">Aún no se han guardado lecturas en esta sesión.</div>
+    <div id="scan-history-empty" class="scan-history-empty">Aún no se han detectado precios en esta sesión.</div>
   </div>
 </div>
 
@@ -660,6 +759,16 @@
   let ultimoToqueAtras = 0;
   let toastTimeout = null;
   let modoTasaManual = 'USD';
+  let scannerMode = 'live'; // 'live' | 'photo'
+  let photoImage = null;    // HTMLImageElement cargada
+  let photoScale = 1;
+  let photoOffsetX = 0;
+  let photoOffsetY = 0;
+  let photoDragging = false;
+  let photoLastTouch = null;
+  let photoPinchDist = 0;
+  let scanOrigen = 'VES';   // moneda del precio detectado en la etiqueta
+  let scanDestino = 'USD';  // a qué convertir al usar el precio
 
   const $ = id => document.getElementById(id);
   const elTasaUSD = $('tasa-usd'), elTasaEUR = $('tasa-eur');
@@ -679,14 +788,24 @@
   const modalConfirm = $('modal-confirm');
   const scannerModal = $('scanner-modal');
   const videoEl = $('cam-video');
+  const photoPreviewEl = $('photo-preview');
+  const scanViewport = $('scan-viewport');
   const scanBoxEl = $('scan-box');
+  const scanHintEl = $('scan-hint');
   const scanStatusEl = $('scan-status');
   const liveNumberEl = $('live-number');
+  const scanConvertedEl = $('scan-converted');
   const scanHistoryChipsEl = $('scan-history-chips');
   const scanHistoryEmptyEl = $('scan-history-empty');
   const btnConfirmScan = $('btn-confirm-scan');
+  const btnDetectZone = $('btn-detect-zone');
+  const btnDetectAll = $('btn-detect-all');
   const zoomSlider = $('zoom-slider');
   const zoomWrapper = $('zoom-control-wrapper');
+  const photoUploadRow = $('photo-upload-row');
+  const photoFileInput = $('photo-file-input');
+  const scanOrigenBtns = $('scan-origen-btns');
+  const scanDestinoBtns = $('scan-destino-btns');
 
   const simbolo = div => div === 'VES' ? 'Bs' : div === 'USD' ? '$' : '€';
   const getTasas = () => tasasHistorial[fechaActual] || { USD: 0, EUR: 0 };
@@ -911,6 +1030,7 @@
       renderizarCalculosGuardados();
     }
     renderizarLista();
+    if (scannerModal.classList.contains('active')) actualizarConversionScan();
   }
 
   function navegarFecha(direccion) {
@@ -1071,23 +1191,57 @@
   });
 
   // --- 5. ESCÁNER EN VIVO + HISTORIAL DE SESIÓN ---
+  function actualizarBotonesMonedaScan() {
+    // Origen: todos habilitados, marcar activo
+    scanOrigenBtns.querySelectorAll('.scan-cur-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.cur === scanOrigen);
+      btn.disabled = false;
+    });
+    // Destino: deshabilitar la misma moneda del origen; si destino == origen, auto-elegir otra
+    const opcionesDest = ['VES', 'USD', 'EUR'].filter(c => c !== scanOrigen);
+    if (scanDestino === scanOrigen) {
+      scanDestino = opcionesDest[0]; // preferir la primera disponible
+    }
+    scanDestinoBtns.querySelectorAll('.scan-cur-btn').forEach(btn => {
+      const cur = btn.dataset.cur;
+      btn.disabled = cur === scanOrigen;
+      btn.classList.toggle('active', cur === scanDestino && cur !== scanOrigen);
+    });
+    actualizarConversionScan();
+  }
+
+  function actualizarConversionScan() {
+    if (ultimoNumeroDetectado === null || isNaN(ultimoNumeroDetectado)) {
+      scanConvertedEl.textContent = '';
+      return;
+    }
+    const t = getTasas();
+    if ((scanOrigen === 'USD' || scanDestino === 'USD') && !t.USD) {
+      scanConvertedEl.textContent = 'Sin tasa USD';
+      return;
+    }
+    if ((scanOrigen === 'EUR' || scanDestino === 'EUR') && !t.EUR) {
+      scanConvertedEl.textContent = 'Sin tasa EUR';
+      return;
+    }
+    const convertido = convertir(ultimoNumeroDetectado, scanOrigen, scanDestino);
+    scanConvertedEl.textContent = `≈ ${formatearNumero(convertido)} ${simbolo(scanDestino)}`;
+  }
+
   function seleccionarPrecioDetectado(valor) {
     if (typeof valor !== 'number' || isNaN(valor) || valor <= 0) return;
     ultimoNumeroDetectado = valor;
     liveNumberEl.textContent = formatearNumero(valor);
     btnConfirmScan.disabled = false;
+    actualizarConversionScan();
     renderizarHistorialEscaneo();
   }
 
   function registrarPrecioEnHistorial(valor) {
     if (typeof valor !== 'number' || isNaN(valor) || valor <= 0) return;
-    if (historialEscaneo.length > 0 && Math.abs(historialEscaneo[0] - valor) < 0.0001) {
-      return;
-    }
+    if (historialEscaneo.some(v => Math.abs(v - valor) < 0.005)) return;
     historialEscaneo.unshift(valor);
-    if (historialEscaneo.length > 16) {
-      historialEscaneo = historialEscaneo.slice(0, 16);
-    }
+    if (historialEscaneo.length > 24) historialEscaneo = historialEscaneo.slice(0, 24);
     renderizarHistorialEscaneo();
   }
 
@@ -1102,7 +1256,7 @@
     historialEscaneo.forEach((val) => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      const estaSeleccionado = ultimoNumeroDetectado !== null && Math.abs(ultimoNumeroDetectado - val) < 0.0001;
+      const estaSeleccionado = ultimoNumeroDetectado !== null && Math.abs(ultimoNumeroDetectado - val) < 0.005;
       btn.className = `scan-chip${estaSeleccionado ? ' selected' : ''}`;
       btn.textContent = formatearNumero(val);
       btn.addEventListener('click', () => {
@@ -1113,16 +1267,24 @@
     });
   }
 
-  async function prepararWorkerOCR() {
-    if (ocrWorker) return ocrWorker;
+  async function prepararWorkerOCR(multi = false) {
+    if (ocrWorker) {
+      try {
+        await ocrWorker.setParameters({
+          tessedit_char_whitelist: '0123456789.,Bs$',
+          tessedit_pageseg_mode: multi ? '6' : '7'
+        });
+      } catch (e) {}
+      return ocrWorker;
+    }
     const libTesseract = await cargarTesseractDinamico();
     if (!libTesseract) return null;
 
     try {
       ocrWorker = await libTesseract.createWorker('eng');
       await ocrWorker.setParameters({
-        tessedit_char_whitelist: '0123456789.,',
-        tessedit_pageseg_mode: '7' 
+        tessedit_char_whitelist: '0123456789.,Bs$',
+        tessedit_pageseg_mode: multi ? '6' : '7'
       });
       return ocrWorker;
     } catch (e) {
@@ -1130,21 +1292,137 @@
     }
   }
 
-  async function abrirEscaner() {
+  function parsearCandidatosPrecio(texto) {
+    if (!texto) return [];
+    const limpio = texto.replace(/[Bb][sS]\.?\s*/g, ' ').replace(/\$/g, ' ');
+    const matches = limpio.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?/g) || [];
+    const resultados = [];
+    const vistos = new Set();
+
+    for (let raw of matches) {
+      let s = raw;
+      if (s.includes(',') && s.includes('.')) {
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+          s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+          s = s.replace(/,/g, '');
+        }
+      } else if (s.includes(',')) {
+        const partes = s.split(',');
+        if (partes[partes.length - 1].length <= 2) s = s.replace(',', '.');
+        else s = s.replace(/,/g, '');
+      } else if (s.includes('.')) {
+        const partes = s.split('.');
+        if (partes.length > 2 || (partes.length === 2 && partes[1].length === 3)) {
+          s = s.replace(/\./g, '');
+        }
+      }
+      const num = parseFloat(s);
+      if (!isNaN(num) && num >= 1 && num < 5000000) {
+        const key = num.toFixed(2);
+        if (!vistos.has(key)) {
+          vistos.add(key);
+          resultados.push(num);
+        }
+      }
+    }
+    resultados.sort((a, b) => b - a);
+    return resultados;
+  }
+
+  function aplicarPreprocesado(ctx, w, h) {
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    let sumaBrillo = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sumaBrillo += (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+    }
+    const promedioBrillo = sumaBrillo / (data.length / 4);
+    const esFondoOscuro = promedioBrillo < 120;
+    const umbral = promedioBrillo * 0.85;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      let val = lum < umbral ? 0 : 255;
+      if (esFondoOscuro) val = 255 - val;
+      data[i] = val; data[i + 1] = val; data[i + 2] = val;
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  function actualizarUIModoScanner() {
+    const isPhoto = scannerMode === 'photo';
+    document.querySelectorAll('.scanner-mode-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.mode === scannerMode);
+    });
+
+    videoEl.style.display = isPhoto ? 'none' : 'block';
+    photoPreviewEl.style.display = isPhoto ? 'block' : 'none';
+    photoUploadRow.classList.toggle('visible', isPhoto);
+    btnDetectZone.style.display = isPhoto ? 'inline-flex' : 'none';
+    btnDetectAll.style.display = isPhoto ? 'inline-flex' : 'none';
+
+    if (isPhoto) {
+      scanHintEl.textContent = 'Acerca con zoom y mueve la foto al recuadro';
+      zoomWrapper.style.display = 'flex';
+      zoomSlider.min = 1;
+      zoomSlider.max = 8;
+      zoomSlider.step = 0.1;
+      zoomSlider.value = photoScale;
+      aplicarTransformFoto();
+    } else {
+      scanHintEl.textContent = 'Mantén el precio dentro del recuadro';
+    }
+  }
+
+  function aplicarTransformFoto() {
+    if (!photoPreviewEl) return;
+    photoPreviewEl.style.transform = `translate(${photoOffsetX}px, ${photoOffsetY}px) scale(${photoScale})`;
+  }
+
+  function resetFotoTransform() {
+    photoScale = 1;
+    photoOffsetX = 0;
+    photoOffsetY = 0;
+    if (zoomSlider) zoomSlider.value = 1;
+    aplicarTransformFoto();
+  }
+
+  async function cambiarModoScanner(modo) {
+    if (modo === scannerMode && modo === 'live' && videoStream) return;
+    clearInterval(scanInterval);
+    scanInterval = null;
+    if (videoStream) {
+      videoStream.getTracks().forEach(t => t.stop());
+      videoStream = null;
+    }
+
+    scannerMode = modo;
     ultimoNumeroDetectado = null;
     historialEscaneo = [];
     renderizarHistorialEscaneo();
     liveNumberEl.textContent = '--';
+    scanConvertedEl.textContent = '';
     btnConfirmScan.disabled = true;
-    scanStatusEl.textContent = 'Iniciando cámara...';
-    pausedForStability = false;
-    zoomWrapper.style.display = 'none';
-    scannerModal.classList.add('active');
+    actualizarUIModoScanner();
 
+    if (modo === 'live') {
+      scanStatusEl.textContent = 'Iniciando cámara...';
+      await iniciarCamaraLive();
+    } else {
+      scanStatusEl.textContent = 'Elige una foto de la galería';
+      if (photoImage) {
+        photoPreviewEl.src = photoImage.src;
+        scanStatusEl.textContent = 'Zoom + mueve el precio al recuadro verde, luego Detectar';
+      }
+    }
+  }
+
+  async function iniciarCamaraLive() {
     try {
-      const workerCheck = await prepararWorkerOCR();
+      const workerCheck = await prepararWorkerOCR(false);
       if (!workerCheck) {
-        scanStatusEl.textContent = '❌ El escáner requiere internet la 1ª vez.';
+        scanStatusEl.textContent = '❌ El escáner requiere internet la 1ª vez (descarga OCR).';
         return;
       }
 
@@ -1159,18 +1437,38 @@
       trackCapabilities = track.getCapabilities ? track.getCapabilities() : {};
       if (trackCapabilities.zoom) {
         zoomSlider.min = trackCapabilities.zoom.min;
-        zoomSlider.max = trackCapabilities.zoom.max;
+        zoomSlider.max = Math.min(trackCapabilities.zoom.max || 5, 5);
         zoomSlider.step = trackCapabilities.zoom.step || 0.1;
         zoomSlider.value = track.getSettings().zoom || trackCapabilities.zoom.min;
         zoomWrapper.style.display = 'flex';
+      } else {
+        zoomWrapper.style.display = 'none';
       }
 
       scanStatusEl.textContent = 'Encuadra el precio en el recuadro...';
-      scanInterval = setInterval(capturarYAnalizarRecuadro, 1500);
+      pausedForStability = false;
+      scanInterval = setInterval(capturarYAnalizarRecuadro, 1400);
     } catch (err) {
       console.error(err);
-      scanStatusEl.textContent = '❌ Error al acceder a la cámara.';
+      scanStatusEl.textContent = '❌ Error al acceder a la cámara. Prueba "Subir foto".';
     }
+  }
+
+  async function abrirEscaner() {
+    ultimoNumeroDetectado = null;
+    historialEscaneo = [];
+    renderizarHistorialEscaneo();
+    liveNumberEl.textContent = '--';
+    scanConvertedEl.textContent = '';
+    btnConfirmScan.disabled = true;
+    // Defaults: etiquetas VE suelen estar en Bs → convertir a $
+    scanOrigen = 'VES';
+    scanDestino = 'USD';
+    actualizarBotonesMonedaScan();
+    scannerMode = 'live';
+    actualizarUIModoScanner();
+    scannerModal.classList.add('active');
+    await iniciarCamaraLive();
   }
 
   function cerrarEscaner() {
@@ -1204,81 +1502,279 @@
       const cropH = Math.min(vh - cropY, boxRect.height * scaleY);
 
       const canvas = document.createElement('canvas');
-      canvas.width = 500;
-      canvas.height = Math.round(500 * (cropH / cropW));
+      canvas.width = 520;
+      canvas.height = Math.max(80, Math.round(520 * (cropH / cropW)));
       const ctx = canvas.getContext('2d');
-
       ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
-
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-      let sumaBrillo = 0;
-
-      for (let i = 0; i < data.length; i += 4) {
-        sumaBrillo += (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-      }
-      const promedioBrillo = sumaBrillo / (data.length / 4);
-      const esFondoOscuro = promedioBrillo < 115;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        let val = lum < promedioBrillo * 0.88 ? 0 : 255;
-        if (esFondoOscuro) val = 255 - val;
-        data[i] = val; data[i + 1] = val; data[i + 2] = val;
-      }
-      ctx.putImageData(imgData, 0, 0);
+      aplicarPreprocesado(ctx, canvas.width, canvas.height);
 
       const { data: { text } } = await ocrWorker.recognize(canvas);
-      const limpioTexto = text.trim();
+      const candidatos = parsearCandidatosPrecio(text);
 
-      const matches = limpioTexto.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?/g);
-      if (matches && matches.length > 0) {
-        matches.sort((a, b) => b.length - a.length);
-        let raw = matches[0];
-
-        if (raw.includes(',') && raw.includes('.')) {
-          if (raw.indexOf(',') > raw.indexOf('.')) {
-            raw = raw.replace(/\./g, '').replace(',', '.');
-          } else {
-            raw = raw.replace(/,/g, '');
+      if (candidatos.length > 0) {
+        const mejor = candidatos[0];
+        registrarPrecioEnHistorial(mejor);
+        seleccionarPrecioDetectado(mejor);
+        scanStatusEl.textContent = '✨ ¡Capturado! Toca Usar o elige abajo';
+        pausedForStability = true;
+        setTimeout(() => {
+          if (scannerModal.classList.contains('active') && scannerMode === 'live') {
+            pausedForStability = false;
+            scanStatusEl.textContent = 'Buscando otro precio...';
           }
-        } else if (raw.includes(',')) {
-          const partes = raw.split(',');
-          if (partes[partes.length - 1].length <= 2) raw = raw.replace(',', '.');
-          else raw = raw.replace(/,/g, '');
-        } else if (raw.includes('.')) {
-          const partes = raw.split('.');
-          if (partes.length > 2 || partes[partes.length - 1].length === 3) {
-            raw = raw.replace(/\./g, '');
-          }
-        }
-
-        const numeroFinal = parseFloat(raw);
-        if (!isNaN(numeroFinal) && numeroFinal > 0) {
-          registrarPrecioEnHistorial(numeroFinal);
-          seleccionarPrecioDetectado(numeroFinal);
-          scanStatusEl.textContent = '✨ ¡Capturado! Toca Usar o elige abajo';
-
-          pausedForStability = true;
-          setTimeout(() => {
-            if (scannerModal.classList.contains('active')) {
-              pausedForStability = false;
-              scanStatusEl.textContent = 'Buscando otro precio...';
-            }
-          }, 1500);
-        }
+        }, 1600);
       }
     } catch (e) {} finally {
       isProcessingFrame = false;
     }
   }
 
+  function cargarFotoDesdeArchivo(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      mostrarAviso('Selecciona una imagen válida');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        photoImage = img;
+        photoPreviewEl.src = img.src;
+        resetFotoTransform();
+        scanStatusEl.textContent = 'Zoom + mueve el precio al recuadro, luego "Detectar zona"';
+        ultimoNumeroDetectado = null;
+        historialEscaneo = [];
+        renderizarHistorialEscaneo();
+        liveNumberEl.textContent = '--';
+        scanConvertedEl.textContent = '';
+        btnConfirmScan.disabled = true;
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function detectarZonaFoto() {
+    if (!photoImage) {
+      mostrarAviso('Primero sube una foto');
+      return;
+    }
+    if (!ocrWorker) {
+      const w = await prepararWorkerOCR(false);
+      if (!w) {
+        scanStatusEl.textContent = '❌ OCR no disponible (necesita internet la 1ª vez)';
+        return;
+      }
+    }
+    if (isProcessingFrame) return;
+    isProcessingFrame = true;
+    scanStatusEl.textContent = 'Analizando zona del recuadro...';
+    btnDetectZone.disabled = true;
+
+    try {
+      const boxRect = scanBoxEl.getBoundingClientRect();
+      const viewRect = scanViewport.getBoundingClientRect();
+
+      const boxLeft = boxRect.left - viewRect.left;
+      const boxTop = boxRect.top - viewRect.top;
+      const boxW = boxRect.width;
+      const boxH = boxRect.height;
+
+      const natW = photoImage.naturalWidth;
+      const natH = photoImage.naturalHeight;
+      const viewW = viewRect.width;
+      const viewH = viewRect.height;
+
+      const ratio = Math.min(viewW / natW, viewH / natH);
+      const baseW = natW * ratio;
+      const baseH = natH * ratio;
+      const baseLeft = (viewW - baseW) / 2;
+      const baseTop = (viewH - baseH) / 2;
+
+      const scaledW = baseW * photoScale;
+      const scaledH = baseH * photoScale;
+      const imgLeft = baseLeft + photoOffsetX - (scaledW - baseW) / 2;
+      const imgTop = baseTop + photoOffsetY - (scaledH - baseH) / 2;
+
+      const relX = (boxLeft - imgLeft) / scaledW;
+      const relY = (boxTop - imgTop) / scaledH;
+      const relW = boxW / scaledW;
+      const relH = boxH / scaledH;
+
+      const cropX = Math.max(0, Math.floor(relX * natW));
+      const cropY = Math.max(0, Math.floor(relY * natH));
+      const cropW = Math.min(natW - cropX, Math.ceil(relW * natW));
+      const cropH = Math.min(natH - cropY, Math.ceil(relH * natH));
+
+      if (cropW < 8 || cropH < 8) {
+        scanStatusEl.textContent = 'Acerca más el precio dentro del recuadro';
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      const targetW = Math.min(900, Math.max(400, cropW));
+      canvas.width = targetW;
+      canvas.height = Math.round(targetW * (cropH / cropW));
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(photoImage, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+      aplicarPreprocesado(ctx, canvas.width, canvas.height);
+
+      await prepararWorkerOCR(false);
+      const { data: { text } } = await ocrWorker.recognize(canvas);
+      const candidatos = parsearCandidatosPrecio(text);
+
+      if (candidatos.length > 0) {
+        candidatos.forEach(c => registrarPrecioEnHistorial(c));
+        seleccionarPrecioDetectado(candidatos[0]);
+        scanStatusEl.textContent = `✨ ${candidatos.length} precio(s) en la zona. Elige abajo.`;
+      } else {
+        scanStatusEl.textContent = 'No se detectó precio. Acerca más o prueba "Todos los precios".';
+      }
+    } catch (e) {
+      console.error(e);
+      scanStatusEl.textContent = 'Error al analizar. Intenta de nuevo.';
+    } finally {
+      isProcessingFrame = false;
+      btnDetectZone.disabled = false;
+    }
+  }
+
+  async function detectarTodosEnFoto() {
+    if (!photoImage) {
+      mostrarAviso('Primero sube una foto');
+      return;
+    }
+    if (isProcessingFrame) return;
+    isProcessingFrame = true;
+    scanStatusEl.textContent = 'Analizando toda la imagen (puede tardar)...';
+    btnDetectAll.disabled = true;
+
+    try {
+      await prepararWorkerOCR(true);
+
+      const natW = photoImage.naturalWidth;
+      const natH = photoImage.naturalHeight;
+      const maxDim = 1400;
+      const scale = Math.min(1, maxDim / Math.max(natW, natH));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(natW * scale);
+      canvas.height = Math.round(natH * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(photoImage, 0, 0, canvas.width, canvas.height);
+      aplicarPreprocesado(ctx, canvas.width, canvas.height);
+
+      const { data: { text } } = await ocrWorker.recognize(canvas);
+      const candidatos = parsearCandidatosPrecio(text);
+
+      if (candidatos.length > 0) {
+        historialEscaneo = [];
+        candidatos.forEach(c => registrarPrecioEnHistorial(c));
+        seleccionarPrecioDetectado(candidatos[0]);
+        scanStatusEl.textContent = `📋 ${candidatos.length} precios encontrados. Toca el que necesites.`;
+      } else {
+        scanStatusEl.textContent = 'No se encontraron precios legibles. Prueba acercar con zoom a uno.';
+      }
+    } catch (e) {
+      console.error(e);
+      scanStatusEl.textContent = 'Error al analizar la imagen completa.';
+    } finally {
+      isProcessingFrame = false;
+      btnDetectAll.disabled = false;
+    }
+  }
+
+  function onPhotoPointerDown(e) {
+    if (scannerMode !== 'photo' || !photoImage) return;
+    e.preventDefault();
+    if (e.touches && e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      photoPinchDist = Math.hypot(dx, dy);
+      photoDragging = false;
+    } else {
+      photoDragging = true;
+      const t = e.touches ? e.touches[0] : e;
+      photoLastTouch = { x: t.clientX, y: t.clientY };
+    }
+  }
+
+  function onPhotoPointerMove(e) {
+    if (scannerMode !== 'photo' || !photoImage) return;
+    if (e.cancelable) e.preventDefault();
+    if (e.touches && e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      if (photoPinchDist > 0) {
+        const factor = dist / photoPinchDist;
+        photoScale = Math.min(8, Math.max(1, photoScale * factor));
+        zoomSlider.value = photoScale;
+        aplicarTransformFoto();
+      }
+      photoPinchDist = dist;
+      photoDragging = false;
+    } else if (photoDragging && photoLastTouch) {
+      const t = e.touches ? e.touches[0] : e;
+      photoOffsetX += t.clientX - photoLastTouch.x;
+      photoOffsetY += t.clientY - photoLastTouch.y;
+      photoLastTouch = { x: t.clientX, y: t.clientY };
+      aplicarTransformFoto();
+    }
+  }
+
+  function onPhotoPointerUp() {
+    photoDragging = false;
+    photoLastTouch = null;
+    photoPinchDist = 0;
+  }
+
+  scanViewport.addEventListener('touchstart', onPhotoPointerDown, { passive: false });
+  scanViewport.addEventListener('touchmove', onPhotoPointerMove, { passive: false });
+  scanViewport.addEventListener('touchend', onPhotoPointerUp);
+  scanViewport.addEventListener('mousedown', onPhotoPointerDown);
+  window.addEventListener('mousemove', onPhotoPointerMove);
+  window.addEventListener('mouseup', onPhotoPointerUp);
+
+  document.querySelectorAll('.scanner-mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => cambiarModoScanner(tab.dataset.mode));
+  });
+
+  photoFileInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) cargarFotoDesdeArchivo(f);
+    e.target.value = '';
+  });
+
+  btnDetectZone.addEventListener('click', detectarZonaFoto);
+  btnDetectAll.addEventListener('click', detectarTodosEnFoto);
+
   zoomSlider.addEventListener('input', e => {
-    if (videoStream && trackCapabilities && trackCapabilities.zoom) {
+    const val = parseFloat(e.target.value);
+    if (scannerMode === 'live' && videoStream && trackCapabilities && trackCapabilities.zoom) {
       const track = videoStream.getVideoTracks()[0];
-      track.applyConstraints({ advanced: [{ zoom: parseFloat(e.target.value) }] }).catch(() => {});
+      track.applyConstraints({ advanced: [{ zoom: val }] }).catch(() => {});
+    } else if (scannerMode === 'photo') {
+      photoScale = val;
+      aplicarTransformFoto();
     }
   });
+
+  // Selectores de moneda en el escáner (origen / destino)
+  scanOrigenBtns.querySelectorAll('.scan-cur-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      scanOrigen = btn.dataset.cur;
+      actualizarBotonesMonedaScan();
+    });
+  });
+  scanDestinoBtns.querySelectorAll('.scan-cur-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.cur === scanOrigen) return;
+      scanDestino = btn.dataset.cur;
+      actualizarBotonesMonedaScan();
+    });
+  });
+  // Estado inicial de botones
+  actualizarBotonesMonedaScan();
 
   // --- 6. CONVERSIÓN Y LISTA ---
   function convertir(monto, origen, destino) {
@@ -1990,8 +2486,14 @@
   $('btn-cancel-scan').addEventListener('click', cerrarEscaner);
   btnConfirmScan.addEventListener('click', () => {
     if (ultimoNumeroDetectado !== null) {
-      inputPrecio.value = ultimoNumeroDetectado.toFixed(2);
+      // Aplicar monedas elegidas en el escáner al conversor principal
+      selOrigen.value = scanOrigen;
+      selDestino.value = scanDestino;
+      inputPrecio.value = String(ultimoNumeroDetectado).replace('.', ',');
+      inputMult.value = '1';
       recalcularPreview();
+      cambiarTab('conversor');
+      mostrarAviso(`💱 ${formatearNumero(ultimoNumeroDetectado)} ${simbolo(scanOrigen)} → ${simbolo(scanDestino)}`);
     }
     cerrarEscaner();
   });
