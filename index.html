@@ -1963,40 +1963,64 @@
 
   obtenerTasaAPI(true);
 </script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    });
-  }
-</script>
         <script>
+  // ===== Registro único del Service Worker + auto-actualización =====
   if ('serviceWorker' in navigator) {
     let recargandoPorSW = false;
+    const habiaControlador = !!navigator.serviceWorker.controller;
 
+    // Se recarga SOLO cuando un SW nuevo toma control (no en la 1ª instalación)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!habiaControlador) return;       // primera instalación → no recargar
       if (recargandoPorSW) return;
       recargandoPorSW = true;
-      window.location.reload();
+      setTimeout(() => {
+        try { window.location.reload(); }
+        catch (e) { window.location.href = window.location.href; }
+      }, 150);
     });
+
+    const chequearActualizacion = async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update();
+      } catch (e) {}
+    };
 
     window.addEventListener('load', async () => {
       try {
-        const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
-        reg.update();
+        // Registro ÚNICO con updateViaCache: 'none' (crítico)
+        const reg = await navigator.serviceWorker.register('./sw.js', {
+          updateViaCache: 'none'
+        });
 
+        // Aviso visual cuando el SW nuevo esté listo
         reg.addEventListener('updatefound', () => {
-          const nuevoSW = reg.installing;
-          if (!nuevoSW) return;
-          nuevoSW.addEventListener('statechange', () => {
-            if (nuevoSW.state === 'installed' && navigator.serviceWorker.controller) {
-              mostrarAviso('🔄 Nueva versión lista, actualizando...');
+          const nuevo = reg.installing;
+          if (!nuevo) return;
+          nuevo.addEventListener('statechange', () => {
+            if (nuevo.state === 'installed' && navigator.serviceWorker.controller) {
+              if (typeof mostrarAviso === 'function') {
+                mostrarAviso('🔄 Actualizando a la nueva versión...', 1500);
+              }
             }
           });
         });
-      } catch (e) {}
+
+        // Buscar actualización al cargar, al volver a foco y periódicamente
+        setTimeout(chequearActualizacion, 1200);
+        setInterval(chequearActualizacion, 3 * 60 * 1000);
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') chequearActualizacion();
+        });
+        window.addEventListener('focus', chequearActualizacion);
+
+      } catch (e) {
+        console.warn('[SW] Error al registrar:', e);
+      }
     });
   }
-    </script>
+</script>
 </body>
 </html>
