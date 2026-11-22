@@ -1970,5 +1970,33 @@
     });
   }
 </script>
+        <script>
+  if ('serviceWorker' in navigator) {
+    let recargandoPorSW = false;
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (recargandoPorSW) return;
+      recargandoPorSW = true;
+      window.location.reload();
+    });
+
+    window.addEventListener('load', async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+        reg.update();
+
+        reg.addEventListener('updatefound', () => {
+          const nuevoSW = reg.installing;
+          if (!nuevoSW) return;
+          nuevoSW.addEventListener('statechange', () => {
+            if (nuevoSW.state === 'installed' && navigator.serviceWorker.controller) {
+              mostrarAviso('🔄 Nueva versión lista, actualizando...');
+            }
+          });
+        });
+      } catch (e) {}
+    });
+  }
+    </script>
 </body>
 </html>
