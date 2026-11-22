@@ -168,50 +168,109 @@
   .currency-tab.active { background: var(--primary); color: #fff; }
   .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
 
-  /* MODAL DE ESCÁNER EN VIVO CON ZOOM */
+  /* MODAL DE ESCÁNER EN VIVO CON ZOOM E HISTORIAL */
   .scanner-modal {
     position: fixed; inset: 0; background: #000; z-index: 100;
-    display: none; flex-direction: column; justify-content: space-between;
+    display: none; flex-direction: column; justify-content: flex-start;
   }
   .scanner-modal.active { display: flex; }
-  .video-wrapper { position: relative; flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+
+  .video-wrapper {
+    position: relative;
+    height: 46dvh;
+    min-height: 230px;
+    max-height: 52dvh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
   video#cam-video { width: 100%; height: 100%; object-fit: cover; }
   
   .scan-overlay {
     position: absolute; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.35);
     pointer-events: none;
   }
   .scan-box {
-    width: 80%; max-width: 320px; height: 76px;
+    width: 82%; max-width: 320px; height: 68px;
     border: 2.5px solid #10b981; border-radius: 10px;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
     background: transparent;
     position: relative;
   }
   .scan-hint {
-    color: #fff; font-size: 12px; font-weight: 600; margin-bottom: 12px;
-    background: rgba(15, 23, 42, 0.85); padding: 4px 12px; border-radius: 12px;
+    color: #fff; font-size: 11px; font-weight: 600; margin-bottom: 8px;
+    background: rgba(15, 23, 42, 0.88); padding: 3px 10px; border-radius: 12px;
     z-index: 2;
   }
+
   .scanner-controls {
-    background: var(--panel); padding: 12px; border-top: 1px solid var(--border);
-    display: flex; flex-direction: column; gap: 8px; z-index: 10;
+    background: var(--panel); padding: 10px 12px;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 7px; z-index: 10; flex-shrink: 0;
   }
   .zoom-container {
-    display: flex; align-items: center; gap: 8px; padding: 0 4px;
+    display: flex; align-items: center; gap: 8px; padding: 0 2px;
   }
   .zoom-container span { font-size: 11px; color: var(--text-muted); font-weight: 600; }
   .zoom-slider { flex: 1; accent-color: var(--primary); height: 6px; }
 
   .live-readout {
     background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px;
-    padding: 6px; text-align: center;
+    padding: 5px 8px; text-align: center;
   }
   .live-readout span { font-size: 11px; color: var(--text-muted); display: block; }
-  .live-readout strong { font-size: 22px; color: var(--success); letter-spacing: 0.5px; }
+  .live-readout strong { font-size: 21px; color: var(--success); letter-spacing: 0.4px; }
   .scanner-btns { display: flex; gap: 8px; }
+
+  .scan-history-panel {
+    flex: 1;
+    background: var(--bg);
+    padding: 10px 12px 14px 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .scan-history-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+  .scan-history-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .scan-chip {
+    min-width: 64px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .scan-chip.selected {
+    background: rgba(59, 130, 246, 0.22);
+    border-color: var(--primary);
+    color: #93c5fd;
+  }
+  .scan-history-empty {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding-top: 4px;
+  }
 </style>
 </head>
 <body>
@@ -554,6 +613,7 @@
       <div id="scan-box" class="scan-box"></div>
     </div>
   </div>
+
   <div class="scanner-controls">
     <div class="zoom-container" id="zoom-control-wrapper" style="display:none;">
       <span>🔍 Zoom</span>
@@ -567,6 +627,12 @@
       <button id="btn-cancel-scan" class="secondary">Cerrar</button>
       <button id="btn-confirm-scan" class="success" disabled>✅ Usar este precio</button>
     </div>
+  </div>
+
+  <div class="scan-history-panel">
+    <div class="scan-history-title">Historial de precios detectados a escoger</div>
+    <div id="scan-history-chips" class="scan-history-chips"></div>
+    <div id="scan-history-empty" class="scan-history-empty">Aún no se han guardado lecturas en esta sesión.</div>
   </div>
 </div>
 
@@ -588,6 +654,7 @@
   let scanInterval = null;
   let isProcessingFrame = false;
   let ultimoNumeroDetectado = null;
+  let historialEscaneo = [];
   let trackCapabilities = null;
   let pausedForStability = false;
   let ultimoToqueAtras = 0;
@@ -615,6 +682,8 @@
   const scanBoxEl = $('scan-box');
   const scanStatusEl = $('scan-status');
   const liveNumberEl = $('live-number');
+  const scanHistoryChipsEl = $('scan-history-chips');
+  const scanHistoryEmptyEl = $('scan-history-empty');
   const btnConfirmScan = $('btn-confirm-scan');
   const zoomSlider = $('zoom-slider');
   const zoomWrapper = $('zoom-control-wrapper');
@@ -1001,7 +1070,49 @@
     mostrarAviso('✅ Tasa guardada correctamente');
   });
 
-  // --- 5. ESCÁNER EN VIVO ---
+  // --- 5. ESCÁNER EN VIVO + HISTORIAL DE SESIÓN ---
+  function seleccionarPrecioDetectado(valor) {
+    if (typeof valor !== 'number' || isNaN(valor) || valor <= 0) return;
+    ultimoNumeroDetectado = valor;
+    liveNumberEl.textContent = formatearNumero(valor);
+    btnConfirmScan.disabled = false;
+    renderizarHistorialEscaneo();
+  }
+
+  function registrarPrecioEnHistorial(valor) {
+    if (typeof valor !== 'number' || isNaN(valor) || valor <= 0) return;
+    if (historialEscaneo.length > 0 && Math.abs(historialEscaneo[0] - valor) < 0.0001) {
+      return;
+    }
+    historialEscaneo.unshift(valor);
+    if (historialEscaneo.length > 16) {
+      historialEscaneo = historialEscaneo.slice(0, 16);
+    }
+    renderizarHistorialEscaneo();
+  }
+
+  function renderizarHistorialEscaneo() {
+    scanHistoryChipsEl.innerHTML = '';
+    if (historialEscaneo.length === 0) {
+      scanHistoryEmptyEl.style.display = 'block';
+      return;
+    }
+    scanHistoryEmptyEl.style.display = 'none';
+
+    historialEscaneo.forEach((val) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      const estaSeleccionado = ultimoNumeroDetectado !== null && Math.abs(ultimoNumeroDetectado - val) < 0.0001;
+      btn.className = `scan-chip${estaSeleccionado ? ' selected' : ''}`;
+      btn.textContent = formatearNumero(val);
+      btn.addEventListener('click', () => {
+        seleccionarPrecioDetectado(val);
+        scanStatusEl.textContent = `Precio ${formatearNumero(val)} seleccionado`;
+      });
+      scanHistoryChipsEl.appendChild(btn);
+    });
+  }
+
   async function prepararWorkerOCR() {
     if (ocrWorker) return ocrWorker;
     const libTesseract = await cargarTesseractDinamico();
@@ -1021,6 +1132,8 @@
 
   async function abrirEscaner() {
     ultimoNumeroDetectado = null;
+    historialEscaneo = [];
+    renderizarHistorialEscaneo();
     liveNumberEl.textContent = '--';
     btnConfirmScan.disabled = true;
     scanStatusEl.textContent = 'Iniciando cámara...';
@@ -1142,10 +1255,9 @@
 
         const numeroFinal = parseFloat(raw);
         if (!isNaN(numeroFinal) && numeroFinal > 0) {
-          ultimoNumeroDetectado = numeroFinal;
-          liveNumberEl.textContent = formatearNumero(numeroFinal);
-          scanStatusEl.textContent = '✨ ¡Capturado! Toca Usar o espera...';
-          btnConfirmScan.disabled = false;
+          registrarPrecioEnHistorial(numeroFinal);
+          seleccionarPrecioDetectado(numeroFinal);
+          scanStatusEl.textContent = '✨ ¡Capturado! Toca Usar o elige abajo';
 
           pausedForStability = true;
           setTimeout(() => {
@@ -1963,62 +2075,31 @@
 
   obtenerTasaAPI(true);
 </script>
-        <script>
-  // ===== Registro único del Service Worker + auto-actualización =====
+<script>
   if ('serviceWorker' in navigator) {
     let recargandoPorSW = false;
-    const habiaControlador = !!navigator.serviceWorker.controller;
 
-    // Se recarga SOLO cuando un SW nuevo toma control (no en la 1ª instalación)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!habiaControlador) return;       // primera instalación → no recargar
       if (recargandoPorSW) return;
       recargandoPorSW = true;
-      setTimeout(() => {
-        try { window.location.reload(); }
-        catch (e) { window.location.href = window.location.href; }
-      }, 150);
+      window.location.reload();
     });
-
-    const chequearActualizacion = async () => {
-      try {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg) await reg.update();
-      } catch (e) {}
-    };
 
     window.addEventListener('load', async () => {
       try {
-        // Registro ÚNICO con updateViaCache: 'none' (crítico)
-        const reg = await navigator.serviceWorker.register('./sw.js', {
-          updateViaCache: 'none'
-        });
+        const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+        reg.update();
 
-        // Aviso visual cuando el SW nuevo esté listo
         reg.addEventListener('updatefound', () => {
-          const nuevo = reg.installing;
-          if (!nuevo) return;
-          nuevo.addEventListener('statechange', () => {
-            if (nuevo.state === 'installed' && navigator.serviceWorker.controller) {
-              if (typeof mostrarAviso === 'function') {
-                mostrarAviso('🔄 Actualizando a la nueva versión...', 1500);
-              }
+          const nuevoSW = reg.installing;
+          if (!nuevoSW) return;
+          nuevoSW.addEventListener('statechange', () => {
+            if (nuevoSW.state === 'installed' && navigator.serviceWorker.controller) {
+              mostrarAviso('🔄 Nueva versión lista, actualizando...');
             }
           });
         });
-
-        // Buscar actualización al cargar, al volver a foco y periódicamente
-        setTimeout(chequearActualizacion, 1200);
-        setInterval(chequearActualizacion, 3 * 60 * 1000);
-
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') chequearActualizacion();
-        });
-        window.addEventListener('focus', chequearActualizacion);
-
-      } catch (e) {
-        console.warn('[SW] Error al registrar:', e);
-      }
+      } catch (e) {}
     });
   }
 </script>
