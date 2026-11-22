@@ -1,4 +1,4 @@
-const CACHE_NAME = 'conversor-cache-v15'; // Cambia este número en cada versión nueva
+const CACHE_NAME = 'conversor-cache-v16'; // Cambia este número en cada versión nueva
 const STATIC_ASSETS = [
   './manifest.json',
   './icon-192.png',
