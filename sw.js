@@ -1,115 +1,60 @@
-const CACHE_NAME = 'conversor-cache-v13'; // Sube este número en cada cambio importante
-const ASSETS = [
-  './',
-  './index.html',
+const CACHE_NAME = 'conversor-cache-v14'; // Cambia este número en cada versión nueva
+const STATIC_ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
 ];
 
-// Instalar y forzar a que pase a espera/activación rápida
-self.addEventListener('install', (e) => {
+self.addEventListener('install', (event) => {
   self.skipWaiting();
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
 });
 
-// Borrar cachés antiguas y tomar control de los clientes
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((cacheNames) =>
-      Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      )
-    ).then(() => self.clients.claim())
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-// Interceptar peticiones: APIs directo a red; HTML/assets con Network First + fallback a caché
-self.addEventListener('fetch', (e) => {
-  const url = e.request.url;
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
 
-  if (url.includes('bcvhoy.com') || url.includes('cromstudio.com.ve')) {
+  // APIs de tasas siempre directo a red
+  if (url.hostname.includes('bcvhoy.com') || url.hostname.includes('cromstudio.com.ve')) {
     return;
   }
 
-  if (e.request.mode === 'navigate' || url.endsWith('.html') || url.endsWith('.json')) {
-    e.respondWith(
-      fetch(e.request)
+  // Para la página principal y navegación: intentar red primero (siempre fresco en GitHub)
+  if (req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('/index.html')) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' })
         .then((networkRes) => {
-          if (networkRes && networkRes.status === 200) {
-            const copia = networkRes.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copia));
-          }
+          const copia = networkRes.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copia));
           return networkRes;
         })
-        .catch(() => caches.match(e.request).then((cached) => cached || caches.match('./index.html')))
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('./index.html')))
     );
     return;
   }
 
-  // Para otros recursos (íconos, librerías, etc.): caché primero y luego red
-  e.respondWith(
-    caches.match(e.request).then((res) => {
-      return res || fetch(e.request).then((networkRes) => {
-        if (networkRes && networkRes.status === 200 && e.request.method === 'GET') {
+  // Otros recursos: caché primero con respaldo a red
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      return cached || fetch(req).then((networkRes) => {
+        if (req.method === 'GET' && networkRes.ok) {
           const copia = networkRes.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copia));
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copia));
         }
         return networkRes;
       });
-    })
-  );
-});
- = 'conversor-cache-v12'; // Cambia el número si haces cambios grandes
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
-];
-
-// Instalar y forzar a que se active de inmediato
-self.addEventListener('install', (e) => {
-  self.skipWaiting(); // Fuerza la actualización
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
-  );
-});
-
-// Limpiar cachés viejas cuando se active la nueva
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
-});
-
-// Interceptar peticiones
-self.addEventListener('fetch', (e) => {
-  if (e.request.url.includes('bcvhoy.com') || e.request.url.includes('cromstudio.com.ve')) {
-    return; // Las APIs siempre van a internet
-  }
-  
-  e.respondWith(
-    caches.match(e.request).then((res) => {
-      return res || fetch(e.request);
     })
   );
 });
