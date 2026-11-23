@@ -685,8 +685,11 @@
 
   <div class="scanner-controls">
     <div class="photo-upload-row" id="photo-upload-row">
-      <label for="photo-file-input">📂 Elegir imagen de la galería</label>
+      <label for="photo-capture-input" style="flex:1;">📸 Tomar foto</label>
+      <input type="file" id="photo-capture-input" accept="image/*" capture="environment" style="display:none;">
+      <label for="photo-file-input" style="flex:1;">📂 Galería</label>
       <input type="file" id="photo-file-input" accept="image/*" style="display:none;">
+      <button type="button" id="btn-guardar-foto" class="btn-footer-mini" style="display:none; height:36px; padding:0 10px; flex:0 0 auto;" title="Guardar foto en el teléfono">💾</button>
     </div>
 
     <div class="zoom-container" id="zoom-control-wrapper" style="display:none;">
@@ -722,6 +725,7 @@
 
     <div class="scanner-btns">
       <button type="button" id="btn-cancel-scan" class="secondary">Cerrar</button>
+      <button type="button" id="btn-pause-scan" class="secondary" style="display:none;" title="Pausar o reanudar detección">⏸️ Pausa</button>
       <button type="button" id="btn-detect-zone" class="primary" style="display:none;">🔎 Detectar zona</button>
       <button type="button" id="btn-detect-all" class="primary" style="display:none;">📋 Todos los precios</button>
       <button type="button" id="btn-confirm-scan" class="success" disabled>✅ Usar este precio</button>
@@ -756,11 +760,13 @@
   let historialEscaneo = [];
   let trackCapabilities = null;
   let pausedForStability = false;
+  let scanPausedManual = false; // pausa manual del usuario en cámara en vivo
   let ultimoToqueAtras = 0;
   let toastTimeout = null;
   let modoTasaManual = 'USD';
   let scannerMode = 'live'; // 'live' | 'photo'
   let photoImage = null;    // HTMLImageElement cargada
+  let photoObjectUrl = null; // para poder descargar/guardar la foto
   let photoScale = 1;
   let photoOffsetX = 0;
   let photoOffsetY = 0;
@@ -798,12 +804,15 @@
   const scanHistoryChipsEl = $('scan-history-chips');
   const scanHistoryEmptyEl = $('scan-history-empty');
   const btnConfirmScan = $('btn-confirm-scan');
+  const btnPauseScan = $('btn-pause-scan');
   const btnDetectZone = $('btn-detect-zone');
   const btnDetectAll = $('btn-detect-all');
+  const btnGuardarFoto = $('btn-guardar-foto');
   const zoomSlider = $('zoom-slider');
   const zoomWrapper = $('zoom-control-wrapper');
   const photoUploadRow = $('photo-upload-row');
   const photoFileInput = $('photo-file-input');
+  const photoCaptureInput = $('photo-capture-input');
   const scanOrigenBtns = $('scan-origen-btns');
   const scanDestinoBtns = $('scan-destino-btns');
 
@@ -1361,6 +1370,8 @@
     photoUploadRow.classList.toggle('visible', isPhoto);
     btnDetectZone.style.display = isPhoto ? 'inline-flex' : 'none';
     btnDetectAll.style.display = isPhoto ? 'inline-flex' : 'none';
+    btnPauseScan.style.display = isPhoto ? 'none' : 'inline-flex';
+    btnGuardarFoto.style.display = (isPhoto && photoImage) ? 'inline-flex' : 'none';
 
     if (isPhoto) {
       scanHintEl.textContent = 'Acerca con zoom y mueve la foto al recuadro';
@@ -1371,7 +1382,10 @@
       zoomSlider.value = photoScale;
       aplicarTransformFoto();
     } else {
-      scanHintEl.textContent = 'Mantén el precio dentro del recuadro';
+      scanHintEl.textContent = scanPausedManual
+        ? 'Escáner en pausa — elige un precio abajo'
+        : 'Mantén el precio dentro del recuadro';
+      btnPauseScan.textContent = scanPausedManual ? '▶️ Seguir' : '⏸️ Pausa';
     }
   }
 
@@ -1398,6 +1412,7 @@
     }
 
     scannerMode = modo;
+    scanPausedManual = false;
     ultimoNumeroDetectado = null;
     historialEscaneo = [];
     renderizarHistorialEscaneo();
@@ -1447,6 +1462,8 @@
 
       scanStatusEl.textContent = 'Encuadra el precio en el recuadro...';
       pausedForStability = false;
+      scanPausedManual = false;
+      btnPauseScan.textContent = '⏸️ Pausa';
       scanInterval = setInterval(capturarYAnalizarRecuadro, 1400);
     } catch (err) {
       console.error(err);
@@ -1461,6 +1478,7 @@
     liveNumberEl.textContent = '--';
     scanConvertedEl.textContent = '';
     btnConfirmScan.disabled = true;
+    scanPausedManual = false;
     // Defaults: etiquetas VE suelen estar en Bs → convertir a $
     scanOrigen = 'VES';
     scanDestino = 'USD';
@@ -1482,7 +1500,7 @@
   }
 
   async function capturarYAnalizarRecuadro() {
-    if (isProcessingFrame || pausedForStability || !videoStream || videoEl.readyState < 2 || !ocrWorker) return;
+    if (isProcessingFrame || pausedForStability || scanPausedManual || !videoStream || videoEl.readyState < 2 || !ocrWorker) return;
     isProcessingFrame = true;
 
     try {
@@ -1534,24 +1552,52 @@
       mostrarAviso('Selecciona una imagen válida');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        photoImage = img;
-        photoPreviewEl.src = img.src;
-        resetFotoTransform();
-        scanStatusEl.textContent = 'Zoom + mueve el precio al recuadro, luego "Detectar zona"';
-        ultimoNumeroDetectado = null;
-        historialEscaneo = [];
-        renderizarHistorialEscaneo();
-        liveNumberEl.textContent = '--';
-        scanConvertedEl.textContent = '';
-        btnConfirmScan.disabled = true;
-      };
-      img.src = reader.result;
+    // Mantener blob URL para poder guardar/descargar después
+    if (photoObjectUrl) {
+      try { URL.revokeObjectURL(photoObjectUrl); } catch (e) {}
+    }
+    photoObjectUrl = URL.createObjectURL(file);
+
+    const img = new Image();
+    img.onload = () => {
+      photoImage = img;
+      photoPreviewEl.src = photoObjectUrl;
+      resetFotoTransform();
+      scanStatusEl.textContent = 'Zoom + mueve el precio al recuadro, luego "Detectar zona"';
+      ultimoNumeroDetectado = null;
+      historialEscaneo = [];
+      renderizarHistorialEscaneo();
+      liveNumberEl.textContent = '--';
+      scanConvertedEl.textContent = '';
+      btnConfirmScan.disabled = true;
+      btnGuardarFoto.style.display = 'inline-flex';
+      // Asegurar que estamos en modo foto para revisar con calma
+      if (scannerMode !== 'photo') {
+        cambiarModoScanner('photo');
+      } else {
+        actualizarUIModoScanner();
+      }
     };
-    reader.readAsDataURL(file);
+    img.onerror = () => mostrarAviso('No se pudo cargar la imagen');
+    img.src = photoObjectUrl;
+  }
+
+  function guardarFotoEnTelefono() {
+    if (!photoObjectUrl && !photoImage) {
+      mostrarAviso('No hay foto para guardar');
+      return;
+    }
+    try {
+      const a = document.createElement('a');
+      a.href = photoObjectUrl || photoPreviewEl.src;
+      a.download = `tascal-precio-${getFechaHoy()}-${Date.now()}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      mostrarAviso('💾 Foto lista para guardar en el teléfono');
+    } catch (e) {
+      mostrarAviso('Mantén pulsada la imagen para guardarla');
+    }
   }
 
   async function detectarZonaFoto() {
@@ -1745,6 +1791,37 @@
     e.target.value = '';
   });
 
+  photoCaptureInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) {
+      // Al tomar foto: cargar en modo foto para revisar con calma
+      if (scannerMode !== 'photo') {
+        // cambiarModoScanner es async; cargamos después de asegurar modo
+        cambiarModoScanner('photo').then(() => cargarFotoDesdeArchivo(f));
+      } else {
+        cargarFotoDesdeArchivo(f);
+      }
+      mostrarAviso('📸 Foto lista para revisar. Puedes guardarla con 💾');
+    }
+    e.target.value = '';
+  });
+
+  btnGuardarFoto.addEventListener('click', guardarFotoEnTelefono);
+
+  btnPauseScan.addEventListener('click', () => {
+    scanPausedManual = !scanPausedManual;
+    if (scanPausedManual) {
+      btnPauseScan.textContent = '▶️ Seguir';
+      scanStatusEl.textContent = '⏸️ Pausado — elige un precio del historial';
+      scanHintEl.textContent = 'Escáner en pausa — elige un precio abajo';
+    } else {
+      btnPauseScan.textContent = '⏸️ Pausa';
+      scanStatusEl.textContent = 'Buscando precios...';
+      scanHintEl.textContent = 'Mantén el precio dentro del recuadro';
+      pausedForStability = false;
+    }
+  });
+
   btnDetectZone.addEventListener('click', detectarZonaFoto);
   btnDetectAll.addEventListener('click', detectarTodosEnFoto);
 
@@ -1777,6 +1854,22 @@
   actualizarBotonesMonedaScan();
 
   // --- 6. CONVERSIÓN Y LISTA ---
+  function actualizarSelectoresConversor(forzarDestino) {
+    const origen = selOrigen.value;
+    // Si el destino actual es igual al origen, cambiar a otra moneda
+    if (selDestino.value === origen || forzarDestino) {
+      const alternativas = ['VES', 'USD', 'EUR'].filter(c => c !== origen);
+      // Preferencias razonables: de VES → USD, de USD/EUR → VES
+      if (origen === 'VES') selDestino.value = alternativas.includes('USD') ? 'USD' : alternativas[0];
+      else selDestino.value = alternativas.includes('VES') ? 'VES' : alternativas[0];
+    }
+    // Deshabilitar en destino la misma moneda que origen
+    Array.from(selDestino.options).forEach(opt => {
+      opt.disabled = opt.value === origen;
+      opt.hidden = opt.value === origen;
+    });
+  }
+
   function convertir(monto, origen, destino) {
     const t = getTasas();
     if (origen === destino) return monto;
@@ -2066,9 +2159,7 @@
   function enviarAConversor(item) {
     if (!item || !item.precio) return;
     selOrigen.value = item.moneda === 'VES' ? 'VES' : 'USD';
-    if (selOrigen.value === selDestino.value) {
-      selDestino.value = selOrigen.value === 'USD' ? 'VES' : 'USD';
-    }
+    actualizarSelectoresConversor(true);
     inputPrecio.value = String(item.precio);
     inputMult.value = '1';
     recalcularPreview();
@@ -2478,8 +2569,20 @@
 
   inputPrecio.addEventListener('input', recalcularPreview);
   inputMult.addEventListener('input', recalcularPreview);
-  selOrigen.addEventListener('change', recalcularPreview);
-  selDestino.addEventListener('change', () => { recalcularPreview(); renderizarLista(); });
+  selOrigen.addEventListener('change', () => {
+    actualizarSelectoresConversor(true);
+    recalcularPreview();
+    renderizarLista();
+  });
+  selDestino.addEventListener('change', () => {
+    // Evitar que el usuario deje origen = destino
+    if (selDestino.value === selOrigen.value) {
+      actualizarSelectoresConversor(true);
+    }
+    recalcularPreview();
+    renderizarLista();
+  });
+  actualizarSelectoresConversor(false);
   $('btn-agregar').addEventListener('click', agregarItem);
 
   $('btn-foto').addEventListener('click', abrirEscaner);
@@ -2489,6 +2592,7 @@
       // Aplicar monedas elegidas en el escáner al conversor principal
       selOrigen.value = scanOrigen;
       selDestino.value = scanDestino;
+      actualizarSelectoresConversor(false);
       inputPrecio.value = String(ultimoNumeroDetectado).replace('.', ',');
       inputMult.value = '1';
       recalcularPreview();
