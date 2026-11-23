@@ -334,9 +334,49 @@
     text-align: center;
     padding-top: 4px;
   }
+
+  /* Solo vertical: aviso en horizontal */
+  .orientacion-bloqueo {
+    display: none;
+    position: fixed; inset: 0; z-index: 9999;
+    background: #0f172a;
+    color: #f8fafc;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+  .orientacion-bloqueo .icono-giro {
+    font-size: 48px;
+    line-height: 1;
+    animation: girar-hint 2.2s ease-in-out infinite;
+  }
+  @keyframes girar-hint {
+    0%, 100% { transform: rotate(0deg); }
+    40% { transform: rotate(-90deg); }
+    60% { transform: rotate(-90deg); }
+  }
+  .orientacion-bloqueo h2 {
+    margin: 0; font-size: 18px; font-weight: 800;
+  }
+  .orientacion-bloqueo p {
+    margin: 0; font-size: 14px; color: #94a3b8; max-width: 280px; line-height: 1.4;
+  }
+  @media screen and (orientation: landscape) and (max-height: 500px) {
+    .orientacion-bloqueo { display: flex; }
+    .app-container { visibility: hidden; pointer-events: none; }
+  }
 </style>
 </head>
 <body>
+
+<div id="orientacion-bloqueo" class="orientacion-bloqueo" aria-live="polite">
+  <div class="icono-giro">📱</div>
+  <h2>Gira el teléfono</h2>
+  <p>TasCal está pensada solo en vertical para que veas bien precios y botones.</p>
+</div>
 
 <div class="app-container">
   <div class="top-panel">
@@ -2666,7 +2706,28 @@
     accionConfirmar = null;
   });
 
-  // --- 11. ARRANQUE 100% OFFLINE-FIRST ---
+  // --- 11. SOLO VERTICAL ---
+  function forzarOrientacionVertical() {
+    try {
+      if (screen.orientation && typeof screen.orientation.lock === 'function') {
+        screen.orientation.lock('portrait').catch(() => {});
+      } else if (typeof screen.lockOrientation === 'function') {
+        screen.lockOrientation('portrait');
+      } else if (typeof screen.mozLockOrientation === 'function') {
+        screen.mozLockOrientation('portrait');
+      } else if (typeof screen.msLockOrientation === 'function') {
+        screen.msLockOrientation('portrait');
+      }
+    } catch (e) {}
+  }
+
+  // Reintentar bloqueo al tocar (algunos navegadores solo permiten tras gesto)
+  document.addEventListener('click', forzarOrientacionVertical, { once: true, passive: true });
+  window.addEventListener('orientationchange', forzarOrientacionVertical);
+  window.addEventListener('resize', forzarOrientacionVertical);
+
+  // --- 12. ARRANQUE 100% OFFLINE-FIRST ---
+  forzarOrientacionVertical();
   iniciarProteccionAtras();
   cargarDatosGuardados();
 
