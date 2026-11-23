@@ -1,9 +1,10 @@
 {
   "name": "Conversor TasCal",
   "short_name": "Conversor",
-  "description": "Conversor de divisas r·pido con OCR para Compras",
+  "description": "Conversor de divisas r√°pido con OCR para Compras",
   "start_url": "./index.html",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
